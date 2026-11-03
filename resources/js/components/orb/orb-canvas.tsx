@@ -1,3 +1,4 @@
+import { Environment, Lightformer } from '@react-three/drei';
 import { advance, Canvas } from '@react-three/fiber';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -14,6 +15,7 @@ type OrbCanvasProps = {
     /** Called once the WebGL context exists and the first frame can render. */
     onReady: () => void;
     mobile: boolean;
+    reducedMotion: boolean;
     debug: boolean;
 };
 
@@ -46,6 +48,7 @@ export default function OrbCanvas({
     motion,
     onReady,
     mobile,
+    reducedMotion,
     debug,
 }: OrbCanvasProps) {
     const visible = usePageVisible();
@@ -84,14 +87,36 @@ export default function OrbCanvas({
             camera={{ fov: 25, position: [0, 0, 20], near: 0.1, far: 100 }}
             onCreated={onReady}
         >
-            <hemisphereLight args={['#ffffff', '#a1a1aa', 1.2]} />
-            <directionalLight position={[-4, 6, 8]} intensity={2.2} />
-            <directionalLight position={[5, -2, -4]} intensity={0.6} />
+            <hemisphereLight args={['#ffffff', '#a1a1aa', 0.6]} />
+            <directionalLight position={[-4, 6, 8]} intensity={1.2} />
+
+            {/* A soft studio for the glass to reflect. Built in the scene: no HDR download. */}
+            <Environment resolution={mobile ? 64 : 256} frames={1}>
+                <Lightformer
+                    form="rect"
+                    intensity={2.5}
+                    position={[-5, 5, 5]}
+                    scale={[6, 3, 1]}
+                />
+                <Lightformer
+                    form="ring"
+                    intensity={1.5}
+                    position={[5, 2, 4]}
+                    scale={3}
+                />
+                <Lightformer
+                    form="rect"
+                    intensity={0.8}
+                    position={[0, -5, 3]}
+                    scale={[10, 1, 1]}
+                />
+            </Environment>
 
             <Orb
                 path={path}
                 motion={motion}
                 quality={mobile ? 'low' : 'high'}
+                interactive={!reducedMotion}
             />
             <OrbRipple path={path} motion={motion} />
             {debug && <OrbDebug path={path} />}

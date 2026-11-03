@@ -85,6 +85,7 @@ export default function OrbStage() {
                     motion={motion}
                     onReady={() => setReady(true)}
                     mobile={mobile}
+                    reducedMotion={reducedMotion}
                     debug={debug}
                 />
             </Suspense>
