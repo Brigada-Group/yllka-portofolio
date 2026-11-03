@@ -323,6 +323,13 @@ export function buildOrbRoute(layout: OrbLayout, still: boolean): OrbRoute {
             // Roll along the track at the pace of the pin: x is a straight
             // function of its progress. In screen space (pinned).
             const y = lane.y - pin.start;
+            marks.push({
+                kind: 'internal',
+                x: lane.start,
+                y: lane.y,
+                x1: lane.end,
+                y1: lane.y,
+            });
             legs.push({
                 s0,
                 s1: Math.max(pin.end, s0 + 1),

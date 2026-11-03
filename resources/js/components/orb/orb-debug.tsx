@@ -13,11 +13,12 @@ import { docToWorld, pxToWorld } from './coordinates';
 import type { OrbPathStore, OrbRoute, OrbSample } from './types';
 
 const MAX_MARKERS = 16;
-/** Path marks: ledges (cyan), roll-off points (orange), landings (green). */
+/** Path marks: ledges (cyan), roll-off points (orange), landings (green), section choreography (violet). */
 const MARK_COLORS = {
     ledge: [0.13, 0.83, 0.93],
     rolloff: [0.98, 0.57, 0.24],
     landing: [0.29, 0.87, 0.5],
+    internal: [0.66, 0.55, 0.98],
 };
 /** Half the size of a roll-off or landing cross, in px. */
 const CROSS = 8;
@@ -105,6 +106,23 @@ export default function OrbDebug({ path }: { path: OrbPathStore }) {
 
                 if (mark.kind === 'ledge') {
                     segment(mark.x, mark.y, mark.x1, mark.y, color);
+                } else if (mark.kind === 'internal') {
+                    // The path, with an arrowhead showing which way the orb goes.
+                    segment(mark.x, mark.y, mark.x1, mark.y1, color);
+                    const angle = Math.atan2(
+                        mark.y1 - mark.y,
+                        mark.x1 - mark.x,
+                    );
+                    for (const side of [-1, 1]) {
+                        const a = angle + Math.PI + side * 0.5;
+                        segment(
+                            mark.x1,
+                            mark.y1,
+                            mark.x1 + Math.cos(a) * CROSS * 1.5,
+                            mark.y1 + Math.sin(a) * CROSS * 1.5,
+                            color,
+                        );
+                    }
                 } else {
                     segment(
                         mark.x - CROSS,

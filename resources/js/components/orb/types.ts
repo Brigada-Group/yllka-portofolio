@@ -187,7 +187,9 @@ export type OrbSample = {
 /** Debug drawing of the computed path (`?orbDebug=1`): ledges, roll-off points and landings. Document px. */
 export type RouteMark =
     | { kind: 'ledge'; x: number; x1: number; y: number }
-    | { kind: 'rolloff' | 'landing'; x: number; y: number };
+    | { kind: 'rolloff' | 'landing'; x: number; y: number }
+    /** A section's own choreography: the path the orb follows while in it. */
+    | { kind: 'internal'; x: number; y: number; x1: number; y1: number };
 
 export type OrbRoute = {
     segments: RouteSegment[];
