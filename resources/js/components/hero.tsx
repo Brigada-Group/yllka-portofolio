@@ -1,27 +1,6 @@
 import { usePage } from '@inertiajs/react';
-import type { ReactNode } from 'react';
 import Emphasis, { plainText } from '@/components/emphasis';
 import LiveTime from '@/components/live-time';
-
-/** A headline line that slides up from behind its own mask when revealed. */
-function Line({
-    children,
-    className = '',
-}: {
-    children: ReactNode;
-    className?: string;
-}) {
-    return (
-        // The padding gives descenders and italic overhangs room inside the mask.
-        <span
-            className={`-mb-[0.14em] block overflow-hidden pr-[0.06em] pb-[0.14em] ${className}`}
-        >
-            <span data-reveal-line className="block">
-                {children}
-            </span>
-        </span>
-    );
-}
 
 /**
  * The name with its last "i" set dotless (ı): the orb drops onto the spot
@@ -72,17 +51,17 @@ export default function Hero() {
                 data-orb-exit="right"
                 className="mt-auto pt-16"
             >
-                <h1 id="hero-title" data-orb-reveal>
+                <h1 id="hero-title">
                     <span className="sr-only">
                         {site.name}. {plainText(site.headline)}
                     </span>
                     <span aria-hidden="true">
-                        <Line className="text-hero font-normal">
+                        <span className="block text-hero font-normal">
                             <NameWithDot name={site.name} />
-                        </Line>
-                        <Line className="mt-4 max-w-[19em] text-lede md:mt-6">
+                        </span>
+                        <span className="mt-4 block max-w-[19em] text-lede md:mt-6">
                             <Emphasis text={site.headline} />
-                        </Line>
+                        </span>
                     </span>
                 </h1>
 

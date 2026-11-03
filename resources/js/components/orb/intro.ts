@@ -1,22 +1,9 @@
 /**
  * The drop intro plays on every full page load of a page with the orb, but
  * not again when returning to it through client-side navigation. A reload
- * counts as a new visit. resources/views/app.blade.php hides the hero text
- * before first paint on full loads, so keep the classes in sync.
+ * counts as a new visit.
  */
 let played = false;
-
-/** On <html> while the hero headline waits for the orb to land. */
-export const INTRO_PENDING_CLASS = 'orb-intro';
-
-/** On <html> once the intro is driving the reveal; cancels the CSS fallback. */
-export const INTRO_RUNNING_CLASS = 'orb-intro-running';
-
-/** The headline revealed when the orb lands... */
-export const REVEAL_SELECTOR = '[data-orb-reveal]';
-
-/** ...one line at a time: each line slides up from behind a mask (an overflow-hidden parent). */
-export const REVEAL_LINE_SELECTOR = '[data-reveal-line]';
 
 export function shouldPlayIntro(): boolean {
     return (
@@ -28,11 +15,4 @@ export function shouldPlayIntro(): boolean {
 
 export function markIntroPlayed(): void {
     played = true;
-}
-
-export function clearIntroClasses(): void {
-    document.documentElement.classList.remove(
-        INTRO_PENDING_CLASS,
-        INTRO_RUNNING_CLASS,
-    );
 }

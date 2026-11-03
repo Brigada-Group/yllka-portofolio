@@ -1,13 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
 import { gsap, useGSAP } from '@/lib/gsap';
-import {
-    clearIntroClasses,
-    INTRO_PENDING_CLASS,
-    INTRO_RUNNING_CLASS,
-    markIntroPlayed,
-    REVEAL_LINE_SELECTOR,
-    REVEAL_SELECTOR,
-} from './intro';
+import { markIntroPlayed } from './intro';
 import type { OrbMotion } from './motion';
 import type { OrbPathStore } from './types';
 
@@ -32,30 +25,25 @@ const SKIP_KEYS = new Set([
 
 /**
  * The drop intro: the orb falls from above the viewport onto the first stop,
- * squashes, bounces twice and settles. As it lands, the hero headline's
- * lines slide up from behind their masks. Any scroll input skips straight to the end state.
+ * squashes, bounces twice and settles. The page content stays put: only
+ * the orb moves. Any scroll input skips straight to the end state.
  *
  * Everything is keyframed on one timeline, so skipping is just `progress(1)`.
  */
 export function useOrbIntro({ path, motion, ready, enabled }: OrbIntroOptions) {
     const skipped = useRef(false);
 
-    // Hide the hero text before paint when arriving through client-side
-    // navigation (the inline <head> script covers full page loads), and
-    // reveal it straight away if the visitor scrolls before the canvas is ready.
+    // If the visitor scrolls before the canvas is ready, skip the drop.
     useLayoutEffect(() => {
         if (!enabled) {
             return;
         }
 
-        const root = document.documentElement;
-        root.classList.add(INTRO_PENDING_CLASS);
         markIntroPlayed();
 
         const skipEarly = () => {
             skipped.current = true;
             motion.offsetY = 0;
-            clearIntroClasses();
         };
         window.addEventListener('wheel', skipEarly, {
             once: true,
@@ -69,7 +57,6 @@ export function useOrbIntro({ path, motion, ready, enabled }: OrbIntroOptions) {
         return () => {
             window.removeEventListener('wheel', skipEarly);
             window.removeEventListener('touchmove', skipEarly);
-            clearIntroClasses();
         };
     }, [enabled, motion]);
 
@@ -84,31 +71,12 @@ export function useOrbIntro({ path, motion, ready, enabled }: OrbIntroOptions) {
 
             if (!hero || skipped.current || window.scrollY > 0) {
                 motion.offsetY = 0;
-                clearIntroClasses();
 
                 return;
             }
 
             // Start fully above the viewport, so the orb drops in from off screen.
             const fall = hero.anchor.y + hero.radius * 3;
-            const lines = Array.from(
-                document.querySelectorAll<HTMLElement>(
-                    `${REVEAL_SELECTOR} ${REVEAL_LINE_SELECTOR}`,
-                ),
-            );
-            // If the CSS fallback already showed the text, play the drop without the reveal.
-            const reveal =
-                lines.length > 0 &&
-                getComputedStyle(lines[0]).transform !== 'none';
-
-            document.documentElement.classList.add(INTRO_RUNNING_CLASS);
-
-            const finish = () => {
-                clearIntroClasses();
-
-                gsap.set(lines, { clearProps: 'transform' });
-            };
-
             const tl = gsap.timeline();
 
             // Fall: accelerate under "gravity" and stretch with speed.
@@ -118,8 +86,8 @@ export function useOrbIntro({ path, motion, ready, enabled }: OrbIntroOptions) {
                 { offsetY: 0, squash: 1.12, duration: 0.75, ease: 'power2.in' },
             );
 
-            // First impact: squash, reveal, then rebound. Each bounce is placed
-            // at a fixed time after impact, so the longer reveal tween can't
+            // First impact: squash, then rebound. Each bounce is placed at a
+            // fixed time after impact, so nothing added to the timeline can
             // push the second bounce back and leave the orb sitting still.
             tl.addLabel('impact')
                 .to(
@@ -152,22 +120,6 @@ export function useOrbIntro({ path, motion, ready, enabled }: OrbIntroOptions) {
                     { offsetY: 0, duration: 0.3, ease: 'power2.in' },
                     'impact+=0.35',
                 );
-
-            // The headline's lines slide up from behind their masks, one after
-            // the other, as the orb lands in its letter.
-            if (reveal) {
-                tl.fromTo(
-                    lines,
-                    { yPercent: 110 },
-                    {
-                        yPercent: 0,
-                        duration: 1.1,
-                        ease: 'expo.out',
-                        stagger: 0.12,
-                    },
-                    'impact+=0.05',
-                );
-            }
 
             // Second, smaller bounce the moment the first one lands, then settle.
             tl.addLabel('impact2', 'impact+=0.65')
@@ -216,7 +168,6 @@ export function useOrbIntro({ path, motion, ready, enabled }: OrbIntroOptions) {
                 }
 
                 tl.progress(1);
-                finish();
                 removeSkipListeners();
             };
             const removeSkipListeners = () => {
@@ -227,17 +178,13 @@ export function useOrbIntro({ path, motion, ready, enabled }: OrbIntroOptions) {
             window.addEventListener('wheel', skip, { passive: true });
             window.addEventListener('touchmove', skip, { passive: true });
             window.addEventListener('keydown', skip);
-            tl.eventCallback('onComplete', () => {
-                finish();
-                removeSkipListeners();
-            });
+            tl.eventCallback('onComplete', removeSkipListeners);
 
             return () => {
                 removeSkipListeners();
                 tl.kill();
                 motion.offsetY = 0;
                 motion.squash = 1;
-                finish();
             };
         },
         { dependencies: [enabled, ready, path, motion] },

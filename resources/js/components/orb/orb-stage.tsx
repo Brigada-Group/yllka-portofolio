@@ -61,7 +61,6 @@ function useFontsReady(timeout = 2000): boolean {
 /**
  * Drop this into a page that has `data-orb-stop` sections. Renders nothing
  * on the server and until the browser is idle, then loads the canvas chunk.
- * Mark the hero text with `data-orb-reveal` for the intro to reveal it on impact.
  */
 export default function OrbStage() {
     // Decided once per mount. Never true on the server.

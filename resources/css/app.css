@@ -40,27 +40,6 @@ html {
     color: var(--color-background);
 }
 
-/*
- * Orb intro: the hero headline's lines wait below their masks and slide up
- * once the orb lands. If the intro never starts (WebGL unavailable, script
- * error), the fallback animation shows them after 3s anyway.
- * See resources/js/components/orb/intro.ts.
- */
-.orb-intro [data-orb-reveal] [data-reveal-line] {
-    transform: translateY(110%);
-    animation: orb-reveal-fallback 0s linear 3s forwards;
-}
-
-.orb-intro-running [data-orb-reveal] [data-reveal-line] {
-    animation: none;
-}
-
-@keyframes orb-reveal-fallback {
-    to {
-        transform: none;
-    }
-}
-
 /* Film grain over the whole page. Static, so it costs nothing per frame. */
 .grain {
     position: fixed;
