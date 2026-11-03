@@ -123,11 +123,11 @@ export default function WorkGallery({ items }: { items: ProjectSummary[] }) {
                     </ul>
                 </div>
 
-                {/* The track the orb rolls along. */}
+                {/* The track the orb rolls along. It stops short of the edge, so the orb can roll off its end. */}
                 <div
                     data-orb-lane
                     aria-hidden="true"
-                    className="mt-6 md:mt-8"
+                    className="mt-6 mr-14 md:mt-8 md:mr-24"
                 />
             </div>
         </section>

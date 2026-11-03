@@ -119,11 +119,10 @@ export default function SkillsMarquee({ skills }: { skills: Skill[] }) {
                     <div className="col-span-12 md:col-span-10 md:col-start-3">
                         <SectionLabel index={3}>Skills</SectionLabel>
                         {/*
-                          The orb stop: it lands as the full stop after "for" (reached
-                          along the line from the right margin) and stays while the
-                          marquees pass, leaving down the right margin.
+                          The orb stop: it lands as the full stop after "for" and stays
+                          while the marquees pass, then rolls off and falls on.
                         */}
-                        <div data-orb-stop="skills" data-orb-via="right">
+                        <div data-orb-stop="skills">
                             <RevealText as="h2" className="mt-4 text-display">
                                 <span id="skills-title">
                                     Tools I <Emphasis text="*reach*" /> for

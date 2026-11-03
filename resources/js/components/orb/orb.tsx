@@ -4,6 +4,7 @@ import { MathUtils, Quaternion, Vector3 } from 'three';
 import type { Group, Mesh, MeshBasicMaterial } from 'three';
 import { createBloomMaterial, HALO_COLOR, setBreath } from './bloom-material';
 import { docToWorld, pxToWorld } from './coordinates';
+import { VIEWPORT_MARGIN } from './route';
 import type { OrbMotion } from './motion';
 import { OrbOrientation } from './orientation';
 import { createHaloTexture, createShadowTexture } from './textures';
@@ -108,6 +109,7 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
             segment: -1,
             frame: null,
             progress: 0,
+            squash: 1,
         } as OrbSample,
         orientation: null as { route: OrbRoute; table: OrbOrientation } | null,
         hover: 0,
@@ -273,8 +275,16 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
 
         const unitsPerPx = pxToWorld(1, size, viewport.width);
         const radius = point.r;
-        // Squash around the contact point, so the bottom stays on the ground.
-        const groundOffset = radius * (1 - motion.squash);
+        // Squash from the intro drop and from landings, around the contact
+        // point so the bottom stays on the ground.
+        const squash = motion.squash * point.squash;
+        const groundOffset = radius * (1 - squash);
+        // Always fully inside the viewport, with a margin.
+        point.x = MathUtils.clamp(
+            point.x,
+            VIEWPORT_MARGIN + radius,
+            size.width - VIEWPORT_MARGIN - radius,
+        );
         const screenX = point.x - window.scrollX;
         const screenY =
             point.y + motion.offsetY + groundOffset - window.scrollY;
@@ -310,8 +320,10 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
             : 0;
         const scale =
             radius * unitsPerPx * (1 + state.hover * HOVER_SCALE + swell);
-        const sideways = scale / Math.sqrt(motion.squash);
-        group.scale.set(sideways, scale * motion.squash, sideways);
+        // Landing squash widens more than volume would (0.85 tall, 1.12 wide).
+        const sideways =
+            (scale / Math.sqrt(motion.squash)) * point.squash ** -0.7;
+        group.scale.set(sideways, scale * squash, sideways);
 
         // Stretch along the heading (leaning into turns), without turning the orb itself.
         const axis = state.heading + lean;

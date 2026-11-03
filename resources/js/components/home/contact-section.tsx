@@ -3,9 +3,8 @@ import ContactForm from '@/components/contact-form';
 import SectionLabel from '@/components/section-label';
 
 /**
- * (05) Contact: a giant "Let's talk." whose full stop is the orb. It arrives
- * along the line from the right margin (`data-orb-via="right"`), so it never
- * crosses the words.
+ * (05) Contact: a giant "Let's talk." whose full stop is the orb. It lands in
+ * the free space right of the heading and rolls back onto the full stop.
  */
 export default function ContactSection() {
     const { site } = usePage().props;
@@ -20,14 +19,13 @@ export default function ContactSection() {
                 <SectionLabel index={5}>Contact</SectionLabel>
 
                 {/*
-                  The orb stop: the heading itself. The orb arrives along the line from
-                  the right margin and is settled as the full stop by the time the
-                  heading's centre reaches the middle of the viewport, then stays.
+                  The orb stop: the heading itself. The orb is settled as the full stop
+                  by the time the heading's centre reaches the middle of the viewport,
+                  then stays.
                 */}
                 <h2
                     id="contact-title"
                     data-orb-stop="contact"
-                    data-orb-via="right"
                     data-orb-trigger="self"
                     data-orb-arrive="center 50%"
                     className="mt-6 text-giant"

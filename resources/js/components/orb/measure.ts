@@ -1,4 +1,5 @@
 import { gsap } from '@/lib/gsap';
+import { VIEWPORT_MARGIN } from './route';
 import type { ScrollTrigger } from '@/lib/gsap';
 import type {
     DocPoint,
@@ -10,8 +11,6 @@ import type {
     OrbStop,
     OrbLane,
     OrbTiming,
-    OrbTrack,
-    OrbVia,
 } from './types';
 
 export const SELECTORS = {
@@ -30,10 +29,6 @@ export const SELECTORS = {
     dot: '[data-orb-dot]',
     /** An empty box the orb rests in, centred and sized to fit (min(width, height) / 2). */
     slot: '[data-orb-slot]',
-    /** A vertical line the orb rolls down as the page scrolls; as wide as the orb. */
-    track: '[data-orb-track]',
-    /** An item beside a track, lit up once the orb has rolled past its top. */
-    entry: '[data-orb-entry]',
 } as const;
 
 /** Space kept between the orb and content or the viewport edge. */
@@ -51,17 +46,6 @@ const clamp = (value: number, min: number, max: number) =>
 
 function readMode(element: HTMLElement): OrbMode {
     return element.dataset.orbMode === 'horizontal' ? 'horizontal' : 'vertical';
-}
-
-/**
- * How the orb reaches and leaves a stop that sits inside text
- * (`data-orb-via`): `right` along the line from the page's right margin,
- * or `down` from below. Anything else travels the usual way.
- */
-function readVia(element: HTMLElement): OrbVia {
-    const via = element.dataset.orbVia;
-
-    return via === 'right' || via === 'down' ? via : 'none';
 }
 
 function readSide(element: HTMLElement): OrbSide {
@@ -250,9 +234,11 @@ function layoutOffset(element: HTMLElement): DocPoint {
  * dot sits as high as a dotted "i" reaches, centred over the stem and about
  * as wide as it. The orb is kept clear of the stem below.
  */
-function dotSlot(
-    element: HTMLElement,
-): { anchor: DocPoint; radius: number } | null {
+function dotSlot(element: HTMLElement): {
+    anchor: DocPoint;
+    radius: number;
+    ledge?: { left: number; right: number };
+} | null {
     const glyph = element.querySelector<HTMLElement>(SELECTORS.dot);
 
     if (!glyph || glyph.offsetWidth === 0) {
@@ -285,6 +271,11 @@ function dotSlot(
     const clearOfStem = centreAbove - xHeight - 1;
 
     return {
+        // The ledge is the top of the letter: the orb rolls off its right side.
+        ledge: {
+            left: x - dotless.actualBoundingBoxLeft,
+            right: x + dotless.actualBoundingBoxRight,
+        },
         anchor: { x: centreX, y: baseline - centreAbove },
         radius: Math.max(
             Math.min(MIN_DOT_RADIUS, clearOfStem),
@@ -294,9 +285,11 @@ function dotSlot(
 }
 
 /** The centre and fitting radius of a `[data-orb-slot]` box, in document px. Null when hidden. */
-function boxSlot(
-    element: HTMLElement,
-): { anchor: DocPoint; radius: number } | null {
+function boxSlot(element: HTMLElement): {
+    anchor: DocPoint;
+    radius: number;
+    ledge?: { left: number; right: number };
+} | null {
     const slot = element.querySelector<HTMLElement>(SELECTORS.slot);
 
     if (!slot || slot.offsetWidth === 0 || slot.offsetHeight === 0) {
@@ -308,36 +301,6 @@ function boxSlot(
     return {
         anchor: { x: x + slot.offsetWidth / 2, y: y + slot.offsetHeight / 2 },
         radius: Math.min(slot.offsetWidth, slot.offsetHeight) / 2,
-    };
-}
-
-/**
- * A `[data-orb-track]` line: the orb rolls from its top to its bottom,
- * sized to the line's width, lighting up `[data-orb-entry]` items as it passes.
- */
-function measureTrack(
-    element: HTMLElement,
-    maxRadius: number,
-): { track: OrbTrack; radius: number } | null {
-    const line = element.querySelector<HTMLElement>(SELECTORS.track);
-
-    if (!line || line.offsetHeight === 0) {
-        return null;
-    }
-
-    const { x, y } = layoutOffset(line);
-    const radius = Math.min(line.offsetWidth / 2, maxRadius);
-    const centre = x + line.offsetWidth / 2;
-
-    return {
-        radius,
-        track: {
-            top: { x: centre, y: y + radius },
-            bottom: { x: centre, y: y + line.offsetHeight - radius },
-            entries: Array.from(
-                element.querySelectorAll<HTMLElement>(SELECTORS.entry),
-            ).map((entry) => ({ element: entry, top: layoutOffset(entry).y })),
-        },
     };
 }
 
@@ -394,10 +357,15 @@ function measureLane(
 
     const radius = Math.max(4, Math.min(rect.height / 2 - 4, maxRadius));
     const left = rect.left + window.scrollX;
+    // Keep the orb's whole body inside the viewport margin along the track.
+    const width = document.documentElement.clientWidth;
 
     return {
-        start: left + radius,
-        end: left + rect.width - radius,
+        start: Math.max(left + radius, VIEWPORT_MARGIN + radius),
+        end: Math.min(
+            left + rect.width - radius,
+            width - VIEWPORT_MARGIN - radius,
+        ),
         y: rect.bottom + shiftY - radius - 0.5,
         radius,
         viewport: element.querySelector<HTMLElement>(SELECTORS.viewport),
@@ -532,7 +500,6 @@ export function measureOrbLayout(
     const placesOrb = measured.map(
         ({ element, mode }, index) =>
             slots[index] !== null ||
-            element.querySelector(SELECTORS.track) !== null ||
             (mode === 'horizontal' &&
                 element.querySelector(SELECTORS.lane) !== null),
     );
@@ -556,7 +523,6 @@ export function measureOrbLayout(
             const trigger = compact ? undefined : pins.get(element);
             const pin = trigger ? measurePin(element, trigger) : null;
             const slot = slots[index];
-            const track = slot ? null : measureTrack(element, radius);
             const lane =
                 mode === 'horizontal'
                     ? measureLane(
@@ -572,8 +538,6 @@ export function measureOrbLayout(
                 side,
                 element,
                 bounds,
-                via: readVia(element),
-                margin: viewport.width - bounds.right,
                 section,
                 ...readTiming(
                     element,
@@ -582,44 +546,20 @@ export function measureOrbLayout(
                 ),
                 pin: null,
                 lane: null,
-                track: null,
             };
+            // Something the orb sits on that is just its own width: a full stop.
+            const around = (anchor: DocPoint, r: number) => ({
+                left: anchor.x - r,
+                right: anchor.x + r,
+            });
 
             if (slot) {
                 return {
                     ...common,
                     anchor: slot.anchor,
                     radius: slot.radius,
+                    ledge: slot.ledge ?? around(slot.anchor, slot.radius),
                     letter: true,
-                };
-            }
-
-            if (track) {
-                // Roll down the line while it passes 60% of the viewport, so the orb stays level on screen.
-                const line = {
-                    top: track.track.top.y - track.radius,
-                    bottom: track.track.bottom.y + track.radius,
-                };
-                const timing = {
-                    arrive: resolvePosition(
-                        element.dataset.orbArrive ?? 'top 60%',
-                        line,
-                        viewport.height,
-                    ),
-                    depart: resolvePosition(
-                        element.dataset.orbDepart ?? 'bottom 60%',
-                        line,
-                        viewport.height,
-                    ),
-                };
-
-                return {
-                    ...common,
-                    ...timing,
-                    anchor: track.track.top,
-                    radius: track.radius,
-                    letter: false,
-                    track: track.track,
                 };
             }
 
@@ -628,23 +568,31 @@ export function measureOrbLayout(
                     ...common,
                     anchor: { x: lane.start, y: lane.y },
                     radius: lane.radius,
+                    // The track: the orb rolls off its right end.
+                    ledge: {
+                        left: lane.start - lane.radius,
+                        right: lane.end + lane.radius,
+                    },
                     letter: false,
                     pin,
                     lane,
                 };
             }
 
+            const anchor = resolveAnchor(
+                element,
+                bounds,
+                side,
+                radius,
+                compact,
+                viewport.width,
+            );
+
             return {
                 ...common,
-                anchor: resolveAnchor(
-                    element,
-                    bounds,
-                    side,
-                    radius,
-                    compact,
-                    viewport.width,
-                ),
+                anchor,
                 radius,
+                ledge: around(anchor, radius),
                 letter: false,
                 pin,
             };

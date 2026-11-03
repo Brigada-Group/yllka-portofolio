@@ -6,17 +6,6 @@ export type OrbMode = 'vertical' | 'horizontal';
 /** Which gutter beside the section content the orb sits in. */
 export type OrbSide = 'left' | 'right';
 
-/** How the orb reaches and leaves a stop inside text (see `data-orb-via`). */
-export type OrbVia = 'none' | 'down' | 'right';
-
-/** A vertical line the orb rolls down (see `data-orb-track`). Document px. */
-export type OrbTrack = {
-    top: DocPoint;
-    bottom: DocPoint;
-    /** Items lit up once the orb passes their top. */
-    entries: { element: HTMLElement; top: number }[];
-};
-
 /** A point in document coordinates (CSS px from the top-left of the page). */
 export type DocPoint = { x: number; y: number };
 
@@ -104,10 +93,12 @@ export type OrbStop = {
     radius: number;
     /** Resting in a dot or slot (`data-orb-dot`, `data-orb-slot`): placed precisely, so it doesn't drift. */
     letter: boolean;
-    /** How it reaches and leaves this stop (`data-orb-via`). */
-    via: OrbVia;
-    /** Width of the page margin right of the content, in px. */
-    margin: number;
+    /**
+     * The x extent (document px) of the surface the orb sits on here: the
+     * top of a letter, a heading's baseline up to its full stop, a track.
+     * When it leaves, it rolls off the right end and falls.
+     */
+    ledge: { left: number; right: number };
     /** The stop's section, document px. Its edges are where the orb crosses between sections. */
     section: { top: number; bottom: number };
     /**
@@ -118,8 +109,6 @@ export type OrbStop = {
      */
     arrive: OrbTiming;
     depart: OrbTiming;
-    /** The line it rolls down, for `data-orb-track` stops. */
-    track: OrbTrack | null;
     /** The horizontal track it rolls along, for horizontal stops with a `data-orb-lane`. */
     lane: OrbLane | null;
     pin: OrbPin | null;
@@ -191,10 +180,18 @@ export type OrbSample = {
     frame: OrbPinFrame | null;
     /** How far through its current leg the orb is, 0 to 1 (by scroll). */
     progress: number;
+    /** Vertical squash from landing (1 = round; below 1 flattened, at touchdown). */
+    squash: number;
 };
+
+/** Debug drawing of the computed path (`?orbDebug=1`): ledges, roll-off points and landings. Document px. */
+export type RouteMark =
+    | { kind: 'ledge'; x: number; x1: number; y: number }
+    | { kind: 'rolloff' | 'landing'; x: number; y: number };
 
 export type OrbRoute = {
     segments: RouteSegment[];
+    marks: RouteMark[];
     sample: (scroll: number, out?: OrbSample) => OrbSample;
 };
 

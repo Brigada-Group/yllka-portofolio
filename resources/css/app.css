@@ -99,27 +99,9 @@ html {
     opacity: calc(0.75 + 0.25 * var(--orb-focus, 1));
 }
 
-/* Track entries stay dim until the orb rolls past them (see orb-path.ts). */
-[data-orb-track-ready] [data-orb-entry] {
-    transition:
-        opacity 0.7s ease,
-        transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-[data-orb-track-ready] [data-orb-entry]:not([data-orb-passed]) {
-    opacity: 0.15;
-    transform: translateY(1rem);
-}
-
 /* The custom cursor replaces the pointer over elements that set data-cursor. */
 @media (hover: hover) and (pointer: fine) {
     [data-cursor] {
         cursor: none;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    [data-orb-track-ready] [data-orb-entry] {
-        transition: none;
     }
 }

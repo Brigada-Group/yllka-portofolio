@@ -16,10 +16,6 @@ export const ORB_STOP_SELECTOR = SELECTORS.stop;
 const PINNED_ATTRIBUTE = 'data-orb-pinned';
 /** CSS custom property on each card: 1 when the orb is at its centre, falling to 0 a card's width away. */
 const FOCUS_PROPERTY = '--orb-focus';
-/** Set on a track entry once the orb has rolled past its top. */
-const PASSED_ATTRIBUTE = 'data-orb-passed';
-/** Set on a track stop while the orb drives it, so entries start dimmed (see app.css). */
-const TRACK_READY_ATTRIBUTE = 'data-orb-track-ready';
 /**
  * Catch-up lag: the orb (and the pinned rows it drives) follows a damped copy
  * of the scroll, closing about 95% of the gap in 0.8s, like ScrollTrigger's
@@ -93,6 +89,7 @@ export function createOrbPath(
         segment: -1,
         frame: null,
         progress: 0,
+        squash: 1,
     };
 
     /** Slide each pinned row and light up its cards one at a time, in order. */
@@ -168,18 +165,10 @@ export function createOrbPath(
             });
     };
 
-    /** Light up the entries beside a track once the orb has rolled past them. */
-    const applyTrack = (stop: OrbStop, orbY: number) => {
-        for (const entry of stop.track?.entries ?? []) {
-            entry.element.toggleAttribute(PASSED_ATTRIBUTE, orbY >= entry.top);
-        }
-    };
-
     const applyPins = () => {
         const orb = route.sample(scroll, sample);
         layout.stops.forEach((stop) => {
             applyPin(stop, scroll, orb.x);
-            applyTrack(stop, orb.y);
         });
     };
 
@@ -250,13 +239,6 @@ export function createOrbPath(
         layout = next;
         route = buildOrbRoute(layout, options.still);
         bindLanes();
-        // Dim track entries until the orb reaches them, unless the orb stays still (reduced motion).
-        layout.stops.forEach((stop) =>
-            stop.element.toggleAttribute(
-                TRACK_READY_ATTRIBUTE,
-                stop.track !== null && !options.still,
-            ),
-        );
         lastHeight = layout.documentHeight;
         applyPins();
         listeners.forEach((listener) => listener());
@@ -297,6 +279,8 @@ export function createOrbPath(
     gsap.ticker.add(tick);
 
     measure();
+    // Headings move when web fonts arrive; measure again once they have.
+    void document.fonts?.ready.then(refresh);
 
     return {
         get: () => layout,
@@ -336,9 +320,6 @@ export function createOrbPath(
             document.fonts?.removeEventListener('loadingdone', refresh);
             ScrollTrigger.removeEventListener('refresh', refresh);
             pins.forEach((trigger, element) => removePin(element, trigger));
-            layout.stops.forEach((stop) =>
-                stop.element.removeAttribute(TRACK_READY_ATTRIBUTE),
-            );
             pins.clear();
             listeners.clear();
         },

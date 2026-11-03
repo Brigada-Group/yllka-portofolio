@@ -1,5 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import { useRef } from 'react';
+import Emphasis from '@/components/emphasis';
+import RevealText from '@/components/reveal-text';
 import SectionLabel from '@/components/section-label';
 import { usePrefersReducedMotion } from '@/hooks/use-media-query';
 import { gsap, useGSAP } from '@/lib/gsap';
@@ -7,8 +9,8 @@ import { about } from '@/routes';
 
 /**
  * (02) About: the bio as one large statement whose words light up from
- * muted to full white as it scrolls through the viewport. The orb rests in
- * the rail beside it (the slot is desktop only).
+ * muted to full white as it scrolls through the viewport. The orb lands as
+ * the full stop after the heading.
  */
 export default function AboutStatement() {
     const { site } = usePage().props;
@@ -52,24 +54,26 @@ export default function AboutStatement() {
             aria-labelledby="about-title"
             className="py-28 md:py-44"
         >
-            <div
-                data-orb-stop="about"
-                data-orb-side="left"
-                className="mx-auto max-w-[1600px] px-4 md:px-8"
-            >
+            <div className="mx-auto max-w-[1600px] px-4 md:px-8">
                 <div className="grid grid-cols-12 gap-x-6">
                     <div className="col-span-12 md:col-span-10 md:col-start-3">
                         <SectionLabel index={2}>About</SectionLabel>
-                        <h2 id="about-title" className="sr-only">
-                            About {site.name}
-                        </h2>
+                        {/* The orb stop: it lands as the full stop after the heading. */}
+                        <div data-orb-stop="about">
+                            <RevealText as="h2" className="mt-4 text-display">
+                                <span id="about-title">
+                                    About <Emphasis text="*me*" />
+                                    <span
+                                        data-orb-slot
+                                        aria-hidden="true"
+                                        className="ml-[0.05em] inline-block size-[0.16em]"
+                                    />
+                                </span>
+                            </RevealText>
+                        </div>
                     </div>
 
-                    <div className="hidden md:col-span-2 md:mt-12 md:flex md:justify-center">
-                        <div data-orb-slot className="size-16" />
-                    </div>
-
-                    <div className="col-span-12 mt-8 md:col-span-10 md:mt-12">
+                    <div className="col-span-12 mt-10 md:col-span-10 md:col-start-3 md:mt-14">
                         <p ref={statement} className="text-statement">
                             {words.map((word, index) => (
                                 <span key={index} data-word>
