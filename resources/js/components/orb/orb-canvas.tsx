@@ -82,7 +82,8 @@ export default function OrbCanvas({
             return;
         }
 
-        const render = () => advance(performance.now());
+        // R3F's clock runs in seconds.
+        const render = () => advance(performance.now() / 1000);
         gsap.ticker.add(render);
 
         return () => gsap.ticker.remove(render);

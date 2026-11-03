@@ -7,29 +7,44 @@ import type { OrbRoute, OrbSample } from './types';
  *
  * Rolling on the page plane: moving in direction d (screen px, y down)
  * turns the orb about the axis (dy, dx, 0) in world space, by
- * distance / radius radians.
+ * distance / (radius × ROLL_GEAR) radians. True rolling (gear 1) spins a
+ * small orb many times a second on a quick scroll, which strobes at 60fps;
+ * geared down it still reads as rolling, calmly.
  */
+const ROLL_GEAR = 4;
 export class OrbOrientation {
     private readonly starts: Quaternion[] = [];
     private readonly axes: Vector3[] = [];
     private readonly step = new Quaternion();
 
-    constructor(private readonly route: OrbRoute) {
+    /**
+     * @param minRadius Never roll as if smaller than this (the orb's resting
+     *   radius), so shrinking to travel along a narrow margin doesn't spin faster.
+     */
+    constructor(
+        private readonly route: OrbRoute,
+        private readonly minRadius: number,
+    ) {
         let current = new Quaternion();
 
         for (const segment of route.segments) {
             const axis = new Vector3(segment.dy, segment.dx, 0);
             const usable = axis.lengthSq() > 0 && segment.r > 0;
+            const radius = this.rollRadius(segment.r);
 
             this.starts.push(current.clone());
             this.axes.push(axis);
 
             if (usable) {
                 current = new Quaternion()
-                    .setFromAxisAngle(axis, segment.length / segment.r)
+                    .setFromAxisAngle(axis, segment.length / radius)
                     .multiply(current);
             }
         }
+    }
+
+    private rollRadius(radius: number): number {
+        return Math.max(radius, this.minRadius) * ROLL_GEAR;
     }
 
     /** Writes the orientation for a route sample into `target`. */
@@ -47,7 +62,8 @@ export class OrbOrientation {
             return target.copy(start);
         }
 
-        const angle = (sample.distance - segment.d0) / segment.r;
+        const angle =
+            (sample.distance - segment.d0) / this.rollRadius(segment.r);
 
         return target.copy(
             this.step.setFromAxisAngle(axis, angle).multiply(start),

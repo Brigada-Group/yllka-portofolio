@@ -27,6 +27,16 @@ const HOVER_REACH = 1.4;
 
 const SHADOW_OPACITY = 0.18;
 
+/** Longest time step a frame may take, in seconds: the first frame, or a return to a background tab, otherwise jumps. */
+const MAX_STEP = 0.1;
+
+/**
+ * The most the orb's visible rotation can turn, in radians per second
+ * (about one turn a second). On a fast scroll it trails the rolling a
+ * little and catches up when the scroll stops.
+ */
+const MAX_SPIN_SPEED = 6;
+
 /** Breathing: one slow breath every 6s at rest, a quick one every 2s while busy (moving or hovered). */
 const BREATH_REST = 6;
 const BREATH_BUSY = 2;
@@ -112,9 +122,13 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
         glow: 0,
         spin: new Quaternion(),
         view: new Vector3(0, 0, 1),
+        // Where rolling and swirl put the orb, and what is shown (rate-limited towards it).
+        target: new Quaternion(),
+        shown: null as Quaternion | null,
     });
 
-    useFrame(({ size, viewport }, delta) => {
+    useFrame(({ size, viewport }, frameDelta) => {
+        const delta = Math.min(frameDelta, MAX_STEP);
         const group = body.current;
         const floor = shadow.current;
         const state = frame.current;
@@ -142,7 +156,10 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
 
         // Rebuild the rotation table when the route is re-measured.
         if (state.orientation?.route !== route) {
-            state.orientation = { route, table: new OrbOrientation(route) };
+            state.orientation = {
+                route,
+                table: new OrbOrientation(route, path.get().radius),
+            };
         }
 
         // Velocity along the route, relative to the page. Ignore jumps (resize, re-measure).
@@ -283,12 +300,27 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
             state.busy * (0.5 - 0.5 * Math.cos(state.glow * Math.PI * 2)),
         );
 
-        // Roll, then swirl about the view axis, then tilt towards the pointer.
-        state.orientation.table.at(point, roll.current.quaternion);
-        roll.current.quaternion.premultiply(
+        // Roll, then swirl about the view axis: where the orb should face.
+        state.orientation.table.at(point, state.target);
+        state.target.premultiply(
             state.spin.setFromAxisAngle(state.view, state.swirl),
         );
 
+        // Turn towards it at a calm, capped speed, so fast scrolls never strobe.
+        if (!state.shown) {
+            state.shown = state.target.clone();
+
+            // `?orb-debug` (see OrbStage): expose the shown rotation for inspection.
+            if ('__orb' in window) {
+                Object.assign(window, { __orbRotation: state.shown });
+            }
+        } else {
+            state.shown.rotateTowards(state.target, MAX_SPIN_SPEED * delta);
+        }
+
+        roll.current.quaternion.copy(state.shown);
+
+        // Then tilt towards the pointer.
         if (pull > 0) {
             state.axis.set(dy, dx, 0).normalize();
             roll.current.quaternion.premultiply(
