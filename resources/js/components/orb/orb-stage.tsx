@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { useIsMobile } from '@/hooks/use-media-query';
+import { useIsMobile, usePrefersReducedMotion } from '@/hooks/use-media-query';
 import { shouldPlayIntro } from './intro';
 import { createOrbMotion } from './motion';
 import OrbErrorBoundary from './orb-error-boundary';
@@ -46,7 +46,9 @@ export default function OrbStage() {
     const [introEnabled] = useState(shouldPlayIntro);
     const [motion] = useState(() => createOrbMotion(!introEnabled));
     const [ready, setReady] = useState(false);
-    const path = useOrbPath();
+    const reducedMotion = usePrefersReducedMotion();
+    // Reduced motion: no pinning, and the orb stays in the hero.
+    const path = useOrbPath({ pinning: !reducedMotion, still: reducedMotion });
     // The hero text is hidden while the intro is pending, so load straight away.
     const idle = useIdle(introEnabled);
     const mobile = useIsMobile();
@@ -57,6 +59,19 @@ export default function OrbStage() {
     );
 
     useOrbIntro({ path, motion, ready, enabled: introEnabled });
+
+    // `?orb-debug`: expose the path for inspection in the console.
+    useEffect(() => {
+        if (!debug || !path) {
+            return;
+        }
+
+        Object.assign(window, { __orb: path });
+
+        return () => {
+            Reflect.deleteProperty(window, '__orb');
+        };
+    }, [debug, path]);
 
     if (!path || !idle) {
         return null;

@@ -33,7 +33,8 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
         const tick = (time: number) => instance.raf(time * 1000);
 
         instance.on('scroll', () => ScrollTrigger.update());
-        gsap.ticker.add(tick);
+        // Prioritised, so anything else on the ticker sees this frame's scroll.
+        gsap.ticker.add(tick, false, true);
         gsap.ticker.lagSmoothing(0);
 
         // Inertia resets or restores the window scroll before firing `navigate`.

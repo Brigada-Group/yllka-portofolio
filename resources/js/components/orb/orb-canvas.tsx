@@ -1,6 +1,7 @@
-import { Canvas } from '@react-three/fiber';
+import { advance, Canvas } from '@react-three/fiber';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { gsap } from '@/lib/gsap';
 import type { OrbMotion } from './motion';
 import Orb from './orb';
 import OrbDebug from './orb-debug';
@@ -49,6 +50,20 @@ export default function OrbCanvas({
 }: OrbCanvasProps) {
     const visible = usePageVisible();
 
+    // Render from GSAP's ticker, right after Lenis has scrolled and
+    // ScrollTrigger has updated the pins, so the orb and the page move in the
+    // same frame. Paused while the tab is hidden.
+    useEffect(() => {
+        if (!visible) {
+            return;
+        }
+
+        const render = () => advance(performance.now());
+        gsap.ticker.add(render);
+
+        return () => gsap.ticker.remove(render);
+    }, [visible]);
+
     return createPortal(
         <Canvas
             aria-hidden
@@ -60,7 +75,7 @@ export default function OrbCanvas({
                 pointerEvents: 'none',
             }}
             dpr={[1, mobile ? 1.5 : 2]}
-            frameloop={visible ? 'always' : 'never'}
+            frameloop="never"
             gl={{
                 antialias: !mobile,
                 alpha: true,

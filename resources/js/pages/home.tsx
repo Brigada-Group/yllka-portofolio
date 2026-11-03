@@ -86,13 +86,20 @@ export default function Home({
                 className="py-24 md:py-32"
             >
                 <h2 id="projects-title">Selected work</h2>
-                <div className="mt-6 flex gap-6 overflow-x-auto">
-                    {featuredProjects.map((project) => (
-                        <div key={project.id} className="w-72 shrink-0">
-                            <ProjectCard project={project} />
-                        </div>
-                    ))}
+                <div data-orb-viewport className="mt-6 overflow-x-auto">
+                    <div data-orb-row className="flex w-max gap-6">
+                        {featuredProjects.map((project) => (
+                            <div
+                                key={project.id}
+                                data-orb-item
+                                className="w-72 shrink-0"
+                            >
+                                <ProjectCard project={project} />
+                            </div>
+                        ))}
+                    </div>
                 </div>
+                <div data-orb-lane aria-hidden />
                 <Link href={projects.index()}>All projects</Link>
             </Section>
 
@@ -103,9 +110,10 @@ export default function Home({
                 className="py-24 md:py-32"
             >
                 <h2 id="skills-title">Skills</h2>
-                <div className="mt-6">
+                <div data-orb-viewport className="mt-6 overflow-x-auto">
                     <SkillList skills={skills} layout="row" />
                 </div>
+                <div data-orb-lane aria-hidden />
             </Section>
 
             <Section id="experience" side="left" className="py-24 md:py-32">

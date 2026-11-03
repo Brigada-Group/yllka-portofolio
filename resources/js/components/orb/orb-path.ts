@@ -1,165 +1,162 @@
+import { gsap, ScrollTrigger } from '@/lib/gsap';
+import { measureOrbLayout, SELECTORS } from './measure';
+import { buildOrbRoute, pinnedRowOffset } from './route';
 import type {
-    DocPoint,
-    DocRect,
     OrbLayout,
-    OrbMode,
+    OrbPathOptions,
     OrbPathStore,
-    OrbSide,
+    OrbRoute,
+    OrbSample,
     OrbStop,
 } from './types';
 
-export const ORB_STOP_SELECTOR = '[data-orb-stop]';
+export const ORB_STOP_SELECTOR = SELECTORS.stop;
 
-/** Space kept between the orb and content or the viewport edge. */
-const MARGIN = 16;
-const MIN_RADIUS = 24;
-const MAX_RADIUS = 60;
-const COMPACT_RADIUS = 22;
+/** Marks a stop whose section is pinned. CSS uses it to show the lane and clip the row. */
+const PINNED_ATTRIBUTE = 'data-orb-pinned';
+/** Set on the card the orb is currently under. */
+const ACTIVE_ATTRIBUTE = 'data-orb-active';
+/** Scroll length of a pinned section, per card plus one, as a share of the viewport height. */
+const PIN_LENGTH_PER_ITEM = 0.55;
 
-const EMPTY_LAYOUT: OrbLayout = {
-    stops: [],
-    radius: MIN_RADIUS,
-    compact: false,
-    viewport: { width: 0, height: 0 },
-    documentHeight: 0,
-};
+function createPin(
+    element: HTMLElement,
+    onUpdate: (self: ScrollTrigger) => void,
+): ScrollTrigger {
+    const section = element.closest<HTMLElement>('section') ?? element;
+    const itemCount = () => element.querySelectorAll(SELECTORS.item).length;
 
-const clamp = (value: number, min: number, max: number) =>
-    Math.min(max, Math.max(min, value));
+    element.setAttribute(PINNED_ATTRIBUTE, '');
+    element.querySelector(SELECTORS.viewport)?.scrollTo({ left: 0 });
 
-function readMode(element: HTMLElement): OrbMode {
-    return element.dataset.orbMode === 'horizontal' ? 'horizontal' : 'vertical';
+    return ScrollTrigger.create({
+        trigger: section,
+        pin: section,
+        // Centre short sections on screen; pin tall ones at the top.
+        start: () =>
+            section.offsetHeight >= window.innerHeight
+                ? 'top top'
+                : 'center center',
+        end: () =>
+            `+=${(itemCount() + 1) * window.innerHeight * PIN_LENGTH_PER_ITEM}`,
+        invalidateOnRefresh: true,
+        onUpdate,
+    });
 }
 
-function readSide(element: HTMLElement): OrbSide {
-    return element.dataset.orbSide === 'left' ? 'left' : 'right';
-}
+function removePin(element: HTMLElement, trigger: ScrollTrigger) {
+    trigger.kill(true);
+    element.removeAttribute(PINNED_ATTRIBUTE);
 
-function toDocRect(rect: DOMRect, scrollX: number, scrollY: number): DocRect {
-    return {
-        top: rect.top + scrollY,
-        bottom: rect.bottom + scrollY,
-        left: rect.left + scrollX,
-        right: rect.right + scrollX,
-        width: rect.width,
-        height: rect.height,
-    };
-}
+    const row = element.querySelector(SELECTORS.row);
 
-function gutterWidth(bounds: DocRect, side: OrbSide, viewportWidth: number) {
-    return side === 'left' ? bounds.left : viewportWidth - bounds.right;
+    if (row) {
+        gsap.set(row, { clearProps: 'transform' });
+    }
+
+    element
+        .querySelectorAll(`[${ACTIVE_ATTRIBUTE}]`)
+        .forEach((item) => item.removeAttribute(ACTIVE_ATTRIBUTE));
 }
 
 /**
- * Where the orb rests for a stop. With room in the gutter it sits in the
- * middle of it, level with the top of the content. Without room (compact)
- * it sits just above the content, against the chosen edge, so it never
- * covers text.
+ * The orb's path: measured stops, the pins for horizontal sections, and the
+ * route the orb follows. Re-measures on resize, ScrollTrigger refresh, page
+ * height changes (images loading) and when stops are added, removed or edited.
  */
-function resolveAnchor(
-    bounds: DocRect,
-    side: OrbSide,
-    radius: number,
-    compact: boolean,
-    viewportWidth: number,
-): DocPoint {
-    if (compact) {
-        return {
-            x:
-                side === 'left'
-                    ? MARGIN + radius
-                    : viewportWidth - MARGIN - radius,
-            y: Math.max(radius, bounds.top - radius - MARGIN / 2),
-        };
-    }
-
-    const gutter = gutterWidth(bounds, side, viewportWidth);
-
-    return {
-        x: side === 'left' ? gutter / 2 : bounds.right + gutter / 2,
-        y: bounds.top + radius,
-    };
-}
-
-/** Measure every `[data-orb-stop]` element under `root`, in DOM order. */
-export function measureOrbLayout(root: ParentNode): OrbLayout {
-    const viewport = {
-        width: document.documentElement.clientWidth,
-        height: window.innerHeight,
-    };
-    const { scrollX, scrollY } = window;
-
-    const measured = Array.from(
-        root.querySelectorAll<HTMLElement>(ORB_STOP_SELECTOR),
-    )
-        .map((element) => ({
-            element,
-            mode: readMode(element),
-            side: readSide(element),
-            rect: element.getBoundingClientRect(),
-        }))
-        // Skip stops that are hidden (display: none, or not rendered at this breakpoint).
-        .filter(({ rect }) => rect.width > 0 || rect.height > 0)
-        .map((stop) => ({
-            ...stop,
-            bounds: toDocRect(stop.rect, scrollX, scrollY),
-        }));
-
-    if (measured.length === 0) {
-        return { ...EMPTY_LAYOUT, viewport };
-    }
-
-    // Size the orb to the narrowest gutter it has to travel through.
-    const narrowestGutter = Math.min(
-        ...measured.map(({ bounds, side }) =>
-            gutterWidth(bounds, side, viewport.width),
-        ),
-    );
-    const compact = narrowestGutter < MIN_RADIUS * 2 + MARGIN * 2;
-    const radius = compact
-        ? COMPACT_RADIUS
-        : clamp((narrowestGutter - MARGIN * 2) / 2, MIN_RADIUS, MAX_RADIUS);
-
-    const stops: OrbStop[] = measured.map(
-        ({ element, mode, side, bounds }, index) => ({
-            id: element.dataset.orbStop || `stop-${index}`,
-            index,
-            mode,
-            side,
-            element,
-            bounds,
-            anchor: resolveAnchor(
-                bounds,
-                side,
-                radius,
-                compact,
-                viewport.width,
-            ),
-        }),
-    );
-
-    return {
-        stops,
-        radius,
-        compact,
-        viewport,
-        documentHeight: document.documentElement.scrollHeight,
-    };
-}
-
-/**
- * A small external store holding the measured orb layout. It re-measures
- * on resize, when the page height changes (images loading, content edits),
- * and when stops are added, removed or their data attributes change.
- */
-export function createOrbPath(root: HTMLElement = document.body): OrbPathStore {
-    let layout = measureOrbLayout(root);
-    let frame = 0;
+export function createOrbPath(
+    root: HTMLElement,
+    options: OrbPathOptions,
+): OrbPathStore {
+    const pins = new Map<HTMLElement, ScrollTrigger>();
     const listeners = new Set<() => void>();
+    const sample: OrbSample = { x: 0, y: 0, r: 0, distance: 0, segment: -1 };
+    let layout: OrbLayout;
+    let route: OrbRoute;
+    let frame = 0;
+    let lastHeight = 0;
+
+    /** Slide each pinned row and light up the card the orb is under. */
+    const applyPin = (stop: OrbStop, scroll: number) => {
+        const pin = stop.pin;
+
+        if (!pin) {
+            return;
+        }
+
+        const offset = pinnedRowOffset(stop, scroll);
+        const pinned = scroll > pin.start && scroll < pin.end;
+        const orbX = route.sample(scroll, sample).x;
+
+        if (pin.row) {
+            gsap.set(pin.row, { x: offset });
+        }
+
+        for (const item of pin.items) {
+            const under =
+                Math.abs(orbX - (item.center + offset)) < item.width / 2;
+            item.element.toggleAttribute(ACTIVE_ATTRIBUTE, pinned && under);
+        }
+    };
+
+    const applyPins = (scroll = window.scrollY) => {
+        layout.stops.forEach((stop) => applyPin(stop, scroll));
+    };
+
+    /** Create or remove pins to match the layout. Returns true if anything changed. */
+    const syncPins = (next: OrbLayout): boolean => {
+        const wanted = new Set(
+            options.pinning && !next.compact
+                ? next.stops
+                      .filter((stop) => stop.mode === 'horizontal')
+                      .map((stop) => stop.element)
+                : [],
+        );
+        let changed = false;
+
+        pins.forEach((trigger, element) => {
+            if (!wanted.has(element)) {
+                removePin(element, trigger);
+                pins.delete(element);
+                changed = true;
+            }
+        });
+
+        wanted.forEach((element) => {
+            if (!pins.has(element)) {
+                const trigger = createPin(element, (self) => {
+                    const stop = layout.stops.find(
+                        (candidate) => candidate.element === element,
+                    );
+
+                    if (stop) {
+                        applyPin(stop, self.scroll());
+                    }
+                });
+                pins.set(element, trigger);
+                changed = true;
+            }
+        });
+
+        return changed;
+    };
 
     const measure = () => {
+        cancelAnimationFrame(frame);
         frame = 0;
-        layout = measureOrbLayout(root);
+
+        let next = measureOrbLayout(root, pins);
+
+        // New or removed pins change the page height, so measure again once ScrollTrigger has laid them out.
+        if (syncPins(next)) {
+            ScrollTrigger.refresh();
+            next = measureOrbLayout(root, pins);
+        }
+
+        layout = next;
+        route = buildOrbRoute(layout, options.still);
+        lastHeight = layout.documentHeight;
+        applyPins();
         listeners.forEach((listener) => listener());
     };
 
@@ -169,9 +166,20 @@ export function createOrbPath(root: HTMLElement = document.body): OrbPathStore {
         }
     };
 
-    const resizeObserver = new ResizeObserver(refresh);
-    resizeObserver.observe(document.documentElement);
-    resizeObserver.observe(root);
+    // The page grew or shrank (images, fonts, content). Pins need ScrollTrigger to recalculate first.
+    const onResize = () => {
+        const heightChanged =
+            Math.abs(document.documentElement.scrollHeight - lastHeight) >= 1;
+
+        if (heightChanged && pins.size > 0) {
+            ScrollTrigger.refresh();
+        } else {
+            refresh();
+        }
+    };
+
+    const resizeObserver = new ResizeObserver(onResize);
+    resizeObserver.observe(document.body);
 
     const mutationObserver = new MutationObserver(refresh);
     mutationObserver.observe(root, {
@@ -182,9 +190,13 @@ export function createOrbPath(root: HTMLElement = document.body): OrbPathStore {
     });
 
     window.addEventListener('resize', refresh);
+    ScrollTrigger.addEventListener('refresh', refresh);
+
+    measure();
 
     return {
         get: () => layout,
+        route: () => route,
         subscribe: (listener) => {
             listeners.add(listener);
 
@@ -196,6 +208,9 @@ export function createOrbPath(root: HTMLElement = document.body): OrbPathStore {
             resizeObserver.disconnect();
             mutationObserver.disconnect();
             window.removeEventListener('resize', refresh);
+            ScrollTrigger.removeEventListener('refresh', refresh);
+            pins.forEach((trigger, element) => removePin(element, trigger));
+            pins.clear();
             listeners.clear();
         },
     };

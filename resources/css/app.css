@@ -23,3 +23,30 @@
         clip-path: none;
     }
 }
+
+/*
+ * Pinned horizontal sections (see resources/js/components/orb/orb-path.ts).
+ * Without pinning (mobile, reduced motion) rows scroll natively and the lane
+ * takes no space.
+ */
+[data-orb-lane] {
+    display: none;
+}
+
+[data-orb-pinned] [data-orb-lane] {
+    display: block;
+    height: 8rem;
+}
+
+[data-orb-pinned] [data-orb-viewport] {
+    overflow: hidden;
+}
+
+/* The card the orb is rolling under. */
+[data-orb-item] {
+    transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+[data-orb-item][data-orb-active] {
+    transform: translateY(-0.5rem) rotate(-1.5deg);
+}

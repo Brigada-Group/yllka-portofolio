@@ -16,9 +16,10 @@ type SkillListProps = {
 export default function SkillList({ skills, layout = 'grid' }: SkillListProps) {
     return (
         <div
+            data-orb-row={layout === 'row' ? '' : undefined}
             className={
                 layout === 'row'
-                    ? 'flex gap-6 overflow-x-auto'
+                    ? 'flex w-max gap-6'
                     : 'grid gap-6 sm:grid-cols-2'
             }
         >
@@ -34,6 +35,7 @@ export default function SkillList({ skills, layout = 'grid' }: SkillListProps) {
                 return (
                     <div
                         key={category.value}
+                        data-orb-item={layout === 'row' ? '' : undefined}
                         className={
                             layout === 'row' ? 'w-56 shrink-0' : undefined
                         }
