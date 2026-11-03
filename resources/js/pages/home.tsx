@@ -64,7 +64,7 @@ export default function Home({
 
             <Section
                 id="hero"
-                side="right"
+                side="left"
                 className="flex min-h-[calc(100svh-5rem)] items-center"
             >
                 <div data-orb-reveal data-orb-beside>
