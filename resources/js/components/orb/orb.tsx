@@ -36,6 +36,9 @@ const MAX_STEP = 0.1;
  * a turn (so it doesn't keep spinning to catch up after a fast scroll).
  */
 const SPIN_DAMPING = 12;
+
+/** How quickly the orb settles onto (or lets go of) a pinned track's real height, per second. */
+const ATTACH_SPEED = 10;
 const MAX_SPIN_LAG_TURNS = 0.5;
 
 /** Breathing: one slow breath every 6s at rest, a quick one every 2s while busy (moving or hovered). */
@@ -102,7 +105,15 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
 
     // Per-frame scratch values, kept out of React state.
     const frame = useRef({
-        sample: { x: 0, y: 0, r: 0, distance: 0, segment: -1 } as OrbSample,
+        sample: {
+            x: 0,
+            y: 0,
+            r: 0,
+            distance: 0,
+            segment: -1,
+            frame: null,
+            progress: 0,
+        } as OrbSample,
         orientation: null as { route: OrbRoute; table: OrbOrientation } | null,
         hover: 0,
         tilt: new Quaternion(),
@@ -128,6 +139,8 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
         // The rolled distance the visible spin is showing (damped towards the route's).
         rolled: null as number | null,
         laneTurn: new Quaternion(),
+        // How firmly the orb is attached to a pinned track's real height, 0 to 1.
+        attach: 0,
         laneAxis: new Vector3(0, 1, 0),
     });
 
@@ -153,6 +166,49 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
         // Swiping a lane's row on small screens rolls the orb along its track.
         const laneShift = path.laneShift(point);
         point.x += laneShift;
+
+        // On and near a pinned track, follow the track's real height on screen
+        // (frozen while pinned), not the lagged scroll, so the orb never bobs
+        // off it. Attachment eases in and out over time, so when the lag has
+        // opened a gap (a fast scroll into or out of the pin) the orb glides
+        // onto the track instead of jumping.
+        const pinFrame = point.frame;
+        let towardsTrack = 0;
+        let attach = 0;
+
+        if (pinFrame) {
+            const moved = MathUtils.clamp(
+                window.scrollY - pinFrame.start,
+                0,
+                pinFrame.span,
+            );
+
+            if (pinFrame.pinned) {
+                towardsTrack = pinFrame.y + moved - point.y;
+                attach = 1;
+            } else {
+                towardsTrack = moved - pinFrame.frame;
+                attach = MathUtils.clamp(
+                    1 - Math.abs(point.y - pinFrame.y) / (point.r * 2),
+                    0,
+                    1,
+                );
+            }
+        }
+
+        state.attach = MathUtils.damp(
+            state.attach,
+            attach,
+            ATTACH_SPEED,
+            delta,
+        );
+
+        if (Math.abs(state.attach - attach) < 0.002) {
+            state.attach = attach;
+        }
+
+        point.y += state.attach * towardsTrack;
+
         const visible = motion.visible && path.get().stops.length > 0;
         group.visible = visible;
         floor.visible = visible;
@@ -169,18 +225,29 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
             };
         }
 
-        // Velocity along the route, relative to the page. Ignore jumps (resize, re-measure).
-        if (state.previous) {
-            const vx = (point.x - state.previous.x) / delta;
-            const vy = (point.y - state.previous.y) / delta;
+        // Velocity along the route: how fast the orb is rolling and which way,
+        // from the distance it rolled and the direction of its segment. Unlike
+        // its position, this isn't thrown off by pinning or the catch-up lag.
+        // Ignore jumps (resize, re-measure), and lane swipes add their own motion.
+        const segment = route.segments[point.segment];
+        const rolled = point.distance + laneShift;
 
-            if (Math.hypot(vx, vy) < 20000) {
-                state.vx = MathUtils.damp(state.vx, vx, 12, delta);
-                state.vy = MathUtils.damp(state.vy, vy, 12, delta);
+        if (state.previous && segment) {
+            const speedAlong = (rolled - state.previous.x) / delta;
+
+            if (Math.abs(speedAlong) < 20000) {
+                const dx = laneShift !== state.previous.y ? 1 : segment.dx;
+                const dy = laneShift !== state.previous.y ? 0 : segment.dy;
+                state.vx = MathUtils.damp(state.vx, speedAlong * dx, 12, delta);
+                state.vy = MathUtils.damp(state.vy, speedAlong * dy, 12, delta);
             }
+        } else {
+            state.vx = MathUtils.damp(state.vx, 0, 12, delta);
+            state.vy = MathUtils.damp(state.vy, 0, 12, delta);
         }
 
-        state.previous = { x: point.x, y: point.y };
+        // Reused as (rolled distance, lane shift) from the last frame.
+        state.previous = { x: rolled, y: laneShift };
         const speed = Math.hypot(state.vx, state.vy);
 
         // Heading in world space (y up). Only meaningful while moving.
@@ -359,7 +426,10 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
 
         // `?orb-debug` (see OrbStage): expose the rotation for inspection.
         if ('__orb' in window && !('__orbRotation' in window)) {
-            Object.assign(window, { __orbRotation: state.target });
+            Object.assign(window, {
+                __orbRotation: state.target,
+                __orbPoint: point,
+            });
         }
 
         // Then tilt towards the pointer.

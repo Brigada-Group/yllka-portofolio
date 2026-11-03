@@ -142,6 +142,24 @@ export type RouteSegment = {
 };
 
 /** Where the orb is for a given scroll position. */
+/**
+ * Ties the orb's height to a pinned section's track. The track's place on
+ * screen depends on the real scroll (it is frozen while pinned), while the
+ * orb follows a lagged scroll; on and near the track, the orb's height must
+ * follow the real one or it bobs up and down as the lag catches up.
+ */
+export type OrbPinFrame = {
+    /** The track's y in the frame of the current leg, in document px. */
+    y: number;
+    /** The pin's start scroll and length. */
+    start: number;
+    span: number;
+    /** How far the section had moved when this leg was measured: 0 before the pin, the span after it. */
+    frame: number;
+    /** On the track during the pin (fully attached), rather than rolling onto or off it. */
+    pinned: boolean;
+};
+
 export type OrbSample = {
     /** Document px. */
     x: number;
@@ -152,6 +170,10 @@ export type OrbSample = {
     distance: number;
     /** Index into `OrbRoute.segments`, or -1 before the orb has moved. */
     segment: number;
+    /** Set on and around a pinned track (see OrbPinFrame). */
+    frame: OrbPinFrame | null;
+    /** How far through its current leg the orb is, 0 to 1 (by scroll). */
+    progress: number;
 };
 
 export type OrbRoute = {

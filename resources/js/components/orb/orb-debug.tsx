@@ -41,6 +41,8 @@ export default function OrbDebug({ path }: { path: OrbPathStore }) {
         r: 0,
         distance: 0,
         segment: -1,
+        frame: null,
+        progress: 0,
     });
 
     useEffect(

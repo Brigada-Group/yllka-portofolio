@@ -1,5 +1,6 @@
 import type {
     OrbLayout,
+    OrbPinFrame,
     OrbVia,
     OrbRoute,
     OrbSample,
@@ -41,6 +42,8 @@ type Leg = {
     settle: number;
     /** Move at a constant rate (rolling down a track), instead of easing in and out. */
     linear: boolean;
+    /** Pinned track this leg rolls on, onto or off (see OrbPinFrame). */
+    frame: OrbPinFrame | null;
     /** Distance rolled before this leg, and index of its first segment. */
     d0: number;
     segment0: number;
@@ -296,8 +299,18 @@ export function buildOrbRoute(layout: OrbLayout, still: boolean): OrbRoute {
     const after = (scroll: number) => Math.max(scroll, cursor.scroll + 1);
 
     /** `settle`: overshoot the stop a little and come back. Off for stops inside text, which must land exactly. */
-    const pushTravel = (points: RoutePoint[], s1: number, settle: boolean) => {
+    // Set after a pinned track: the next leg starts on it, in the frame after the pin.
+    let exitFrame: OrbPinFrame | null = null;
+
+    const pushTravel = (
+        points: RoutePoint[],
+        s1: number,
+        settle: boolean,
+        frame: OrbPinFrame | null = exitFrame,
+    ) => {
+        exitFrame = null;
         legs.push({
+            frame,
             s0: cursor.scroll,
             s1,
             pinned: false,
@@ -325,11 +338,16 @@ export function buildOrbRoute(layout: OrbLayout, still: boolean): OrbRoute {
 
         if (stop.pin) {
             const pin = stop.pin;
-            pushTravel(travel(cursor, target, layout), after(pin.start), true);
+            const lane = stop.lane!;
+            const span = pin.end - pin.start;
+            const onTrack = { y: lane.y, start: pin.start, span, frame: 0 };
+            pushTravel(travel(cursor, target, layout), after(pin.start), true, {
+                ...onTrack,
+                pinned: false,
+            });
 
             // Roll along the track at the pace of the pin: x is a straight
             // function of its progress. Points are in screen space (pinned).
-            const lane = stop.lane!;
             const y = lane.y - pin.start;
             const points: RoutePoint[] = [
                 { x: lane.start, y, r: lane.radius },
@@ -343,6 +361,7 @@ export function buildOrbRoute(layout: OrbLayout, still: boolean): OrbRoute {
                 gear: 1,
                 settle: 0,
                 linear: true,
+                frame: { ...onTrack, pinned: true },
                 points,
                 cum: cumulative(points),
                 keys: [
@@ -352,11 +371,17 @@ export function buildOrbRoute(layout: OrbLayout, still: boolean): OrbRoute {
             });
 
             // After the pin, the section has moved down by the pin's length.
-            const shift = pin.end - pin.start;
+            exitFrame = {
+                y: lane.y + span,
+                start: pin.start,
+                span,
+                frame: span,
+                pinned: false,
+            };
             cursor = {
-                point: { x: lane.end, y: lane.y + shift, r: lane.radius },
+                point: { x: lane.end, y: lane.y + span, r: lane.radius },
                 scroll: Math.max(pin.end, s0 + 1),
-                bottom: stop.bounds.bottom + shift,
+                bottom: stop.bounds.bottom + span,
                 via: 'none',
                 margin: stop.margin,
             };
@@ -385,6 +410,7 @@ export function buildOrbRoute(layout: OrbLayout, still: boolean): OrbRoute {
                 gear: 1,
                 settle: 0,
                 linear: true,
+                frame: null,
                 points,
                 cum: cumulative(points),
                 keys: [
@@ -418,6 +444,8 @@ function staticRoute(point: RoutePoint): OrbRoute {
                 r: point.r,
                 distance: 0,
                 segment: -1,
+                frame: null,
+                progress: 0,
             }),
     };
 }
@@ -428,6 +456,8 @@ const emptySample = (): OrbSample => ({
     r: 0,
     distance: 0,
     segment: -1,
+    frame: null,
+    progress: 0,
 });
 
 function createRoute(
@@ -491,6 +521,8 @@ function createRoute(
         out.r = clamp(point.r, Math.min(a.r, b.r), Math.max(a.r, b.r));
         out.distance = leg.d0 + along;
         out.segment = leg.points.length > 1 ? leg.segment0 + lo : -1;
+        out.frame = leg.frame;
+        out.progress = clamp((scroll - leg.s0) / (leg.s1 - leg.s0), 0, 1);
 
         return out;
     };
@@ -505,6 +537,8 @@ function createRoute(
                     ...rest,
                     distance: 0,
                     segment: -1,
+                    frame: null,
+                    progress: 0,
                 });
             }
 

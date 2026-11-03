@@ -85,7 +85,15 @@ export function createOrbPath(
     let frame = 0;
     let lastHeight = 0;
     let scroll = window.scrollY;
-    const sample: OrbSample = { x: 0, y: 0, r: 0, distance: 0, segment: -1 };
+    const sample: OrbSample = {
+        x: 0,
+        y: 0,
+        r: 0,
+        distance: 0,
+        segment: -1,
+        frame: null,
+        progress: 0,
+    };
 
     /** Slide each pinned row and light up its cards one at a time, in order. */
     /** Slide each pinned row, and focus the cards by how close each is to the orb. */
