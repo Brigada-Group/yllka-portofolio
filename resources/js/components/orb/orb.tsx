@@ -14,7 +14,7 @@ type OrbProps = {
     path: OrbPathStore;
     motion: OrbMotion;
     quality: 'high' | 'low';
-    /** Hover, idle drift, breathing and swirl. Off for reduced motion. */
+    /** Hover, breathing and swirl. Off for reduced motion. */
     interactive: boolean;
 };
 
@@ -44,9 +44,10 @@ const MAX_SPIN_LAG_TURNS = 0.5;
 /** Breathing: one slow breath every 6s at rest, a quick one every 2s while busy (moving or hovered). */
 const BREATH_REST = 6;
 const BREATH_BUSY = 2;
-/** The blobs swirl once every 24s at rest, every 8s while busy, on top of rolling. */
-const SWIRL_REST = 24;
-const SWIRL_BUSY = 8;
+/** The blobs swirl once every 8s while the orb travels, on top of rolling. Parked, they hold still. */
+const SWIRL_MOVING = 8;
+/** Parked, the orb only breathes: its scale swells by this much with each breath. */
+const BREATH_SCALE = 0.02;
 /** Speed (px/s along the route) that counts as fully busy. */
 const BUSY_SPEED = 800;
 /** The busy glow pulses every 1.6s. */
@@ -63,12 +64,6 @@ const STRETCH_SPEED = 1500;
 /** Lean into turns: radians of tilt per radian/second of turning, capped. */
 const TURN_LEAN = 0.06;
 const MAX_LEAN = 0.2;
-
-/** Idle drift: after this many seconds without scrolling, ease towards the mouse... */
-const IDLE_DELAY = 0.6;
-/** ...by this share of the distance to it, but at most this many px. */
-const DRIFT_PULL = 0.1;
-const MAX_DRIFT = 20;
 
 /** The shortest signed angle from a to b. */
 const angleBetween = (a: number, b: number) =>
@@ -125,8 +120,6 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
         heading: 0,
         turning: 0,
         stretch: 1,
-        idle: 0,
-        drift: { x: 0, y: 0 },
         // Breathing and swirl.
         busy: 0,
         breath: 0,
@@ -287,44 +280,9 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
             point.y + motion.offsetY + groundOffset - window.scrollY;
         const p = pointer.current;
 
-        // Idle drift: once scrolling has settled, ease a little towards the mouse.
-        const settled =
-            Math.abs(window.scrollY - path.scroll()) < 0.5 &&
-            speed < 5 &&
-            motion.offsetY === 0;
-        state.idle = settled ? state.idle + delta : 0;
-        let driftX = 0;
-        let driftY = 0;
-
-        // Not while it rests in a dot or slot: it's placed precisely there.
-        const inLetter = path
-            .get()
-            .stops.some(
-                (stop) =>
-                    stop.letter &&
-                    Math.hypot(
-                        stop.anchor.x - point.x,
-                        stop.anchor.y - point.y,
-                    ) < 1,
-            );
-
-        if (p.active && state.idle > IDLE_DELAY && !inLetter) {
-            driftX = (p.x - screenX) * DRIFT_PULL;
-            driftY = (p.y - screenY) * DRIFT_PULL;
-            const length = Math.hypot(driftX, driftY);
-
-            if (length > MAX_DRIFT) {
-                driftX *= MAX_DRIFT / length;
-                driftY *= MAX_DRIFT / length;
-            }
-        }
-
-        state.drift.x = MathUtils.damp(state.drift.x, driftX, 1.5, delta);
-        state.drift.y = MathUtils.damp(state.drift.y, driftY, 1.5, delta);
-
         // Hover: ease towards 1 while the pointer is over (or near) the orb.
-        const dx = p.x - (screenX + state.drift.x);
-        const dy = p.y - (screenY + state.drift.y);
+        const dx = p.x - screenX;
+        const dy = p.y - screenY;
         const distance = Math.hypot(dx, dy);
         const near = p.active && distance < radius * HOVER_REACH;
         state.hover = MathUtils.damp(state.hover, near ? 1 : 0, 8, delta);
@@ -337,8 +295,8 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
             distance > 0 ? (dy / distance) * pull * HOVER_LEAN * radius : 0;
 
         docToWorld(
-            point.x + state.drift.x + leanX,
-            point.y + state.drift.y + motion.offsetY + groundOffset + leanY,
+            point.x + leanX,
+            point.y + motion.offsetY + groundOffset + leanY,
             window.scrollY,
             size,
             viewport.width,
@@ -346,7 +304,12 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
         );
 
         // Size and the intro's vertical squash.
-        const scale = radius * unitsPerPx * (1 + state.hover * HOVER_SCALE);
+        // Breathing: a tiny swell with each breath, so the parked orb feels alive.
+        const swell = interactive
+            ? (0.5 - 0.5 * Math.cos(state.breath * Math.PI * 2)) * BREATH_SCALE
+            : 0;
+        const scale =
+            radius * unitsPerPx * (1 + state.hover * HOVER_SCALE + swell);
         const sideways = scale / Math.sqrt(motion.squash);
         group.scale.set(sideways, scale * motion.squash, sideways);
 
@@ -373,8 +336,10 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
                     delta /
                         MathUtils.lerp(BREATH_REST, BREATH_BUSY, state.busy)) %
                 1;
+            // Swirl only while travelling: parked, the orb holds still.
             state.swirl +=
-                (delta / MathUtils.lerp(SWIRL_REST, SWIRL_BUSY, state.busy)) *
+                (delta / SWIRL_MOVING) *
+                Math.min(speed / BUSY_SPEED, 1) *
                 Math.PI *
                 2;
             state.glow = (state.glow + delta / GLOW_PERIOD) % 1;
@@ -445,8 +410,8 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
         const grounded = 1 / (1 + height / (radius * 3));
 
         docToWorld(
-            point.x + state.drift.x + radius * 0.12,
-            point.y + state.drift.y + radius * 0.92,
+            point.x + radius * 0.12,
+            point.y + radius * 0.92,
             window.scrollY,
             size,
             viewport.width,

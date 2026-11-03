@@ -118,11 +118,23 @@ export default function SkillsMarquee({ skills }: { skills: Skill[] }) {
                 <div className="grid grid-cols-12 gap-x-6">
                     <div className="col-span-12 md:col-span-10 md:col-start-3">
                         <SectionLabel index={3}>Skills</SectionLabel>
-                        <RevealText as="h2" className="mt-4 text-display">
-                            <span id="skills-title">
-                                Tools I <Emphasis text="*reach*" /> for
-                            </span>
-                        </RevealText>
+                        {/*
+                          The orb stop: it lands as the full stop after "for" (reached
+                          along the line from the right margin) and stays while the
+                          marquees pass, leaving down the right margin.
+                        */}
+                        <div data-orb-stop="skills" data-orb-via="right">
+                            <RevealText as="h2" className="mt-4 text-display">
+                                <span id="skills-title">
+                                    Tools I <Emphasis text="*reach*" /> for
+                                    <span
+                                        data-orb-slot
+                                        aria-hidden="true"
+                                        className="ml-[0.05em] inline-block size-[0.16em]"
+                                    />
+                                </span>
+                            </RevealText>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -134,42 +146,47 @@ export default function SkillsMarquee({ skills }: { skills: Skill[] }) {
                 ))}
             </ul>
 
+            {/* Clipped to the content width, leaving the page margins clear for the orb to pass. */}
             <div
                 ref={container}
                 aria-hidden="true"
-                className="mt-12 space-y-2 overflow-hidden md:mt-16"
+                className="mx-auto mt-12 max-w-[1600px] px-4 md:mt-16 md:px-8"
             >
-                {rows(skills, 3).map((row, rowIndex) => (
-                    <div
-                        key={rowIndex}
-                        className="overflow-hidden whitespace-nowrap"
-                    >
-                        {/* Two copies, so a -50% shift loops seamlessly. */}
-                        <div data-marquee className="inline-flex w-max">
-                            {[0, 1].map((copy) => (
-                                <span key={copy} className="inline-flex">
-                                    {row.map((skill, index) => (
-                                        <span
-                                            key={skill.id}
-                                            className="inline-flex items-center text-marquee"
-                                        >
+                <div className="space-y-2 overflow-hidden">
+                    {rows(skills, 3).map((row, rowIndex) => (
+                        <div
+                            key={rowIndex}
+                            className="overflow-hidden whitespace-nowrap"
+                        >
+                            {/* Two copies, so a -50% shift loops seamlessly. */}
+                            <div data-marquee className="inline-flex w-max">
+                                {[0, 1].map((copy) => (
+                                    <span key={copy} className="inline-flex">
+                                        {row.map((skill, index) => (
                                             <span
-                                                className={
-                                                    (index + rowIndex) % 2 === 1
-                                                        ? 'font-display italic'
-                                                        : ''
-                                                }
+                                                key={skill.id}
+                                                className="inline-flex items-center text-marquee"
                                             >
-                                                {skill.name}
+                                                <span
+                                                    className={
+                                                        (index + rowIndex) %
+                                                            2 ===
+                                                        1
+                                                            ? 'font-display italic'
+                                                            : ''
+                                                    }
+                                                >
+                                                    {skill.name}
+                                                </span>
+                                                <span className="mx-[0.35em] inline-block size-[0.14em] rounded-full bg-accent" />
                                             </span>
-                                            <span className="mx-[0.35em] inline-block size-[0.14em] rounded-full bg-accent" />
-                                        </span>
-                                    ))}
-                                </span>
-                            ))}
+                                        ))}
+                                    </span>
+                                ))}
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    ))}
+                </div>
             </div>
         </section>
     );

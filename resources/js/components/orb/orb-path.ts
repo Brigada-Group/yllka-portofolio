@@ -22,10 +22,10 @@ const PASSED_ATTRIBUTE = 'data-orb-passed';
 const TRACK_READY_ATTRIBUTE = 'data-orb-track-ready';
 /**
  * Catch-up lag: the orb (and the pinned rows it drives) follows a damped copy
- * of the scroll, closing about 95% of the gap in 1.2s, like ScrollTrigger's
- * `scrub: 1.2`. Per second.
+ * of the scroll, closing about 95% of the gap in 0.8s, like ScrollTrigger's
+ * `scrub: 0.8`. Per second.
  */
-const SCROLL_LAG = 2.5;
+const SCROLL_LAG = 3.75;
 
 /** Scroll position jumps larger than this many screens (restoring scroll, anchors) snap instead of easing. */
 const SNAP_SCREENS = 2;

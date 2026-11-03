@@ -42,13 +42,15 @@ export default function Hero() {
             </div>
 
             {/*
-              The orb stop: it rests as the dot of the last "i", lifts off to
-              the right along the line, then heads down past this block.
+              The orb stop: it rests as the dot of the last "i" until the page
+              scrolls at all (depart 0), lifts off to the right along the line,
+              then heads down past this block.
             */}
             <div
                 data-orb-stop="hero"
                 data-orb-side="left"
                 data-orb-via="right"
+                data-orb-depart="0"
                 className="mt-auto pt-16"
             >
                 <h1 id="hero-title">

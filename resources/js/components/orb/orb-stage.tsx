@@ -3,6 +3,7 @@ import { useIsMobile, usePrefersReducedMotion } from '@/hooks/use-media-query';
 import { shouldPlayIntro } from './intro';
 import { createOrbMotion } from './motion';
 import OrbErrorBoundary from './orb-error-boundary';
+import OrbMarkers from './orb-markers';
 import { useOrbIntro } from './use-orb-intro';
 import { useOrbPath } from './use-orb-path';
 
@@ -73,11 +74,16 @@ export default function OrbStage() {
     // The hero text is hidden while the intro is pending, so load straight away.
     const idle = useIdle(introEnabled);
     const mobile = useIsMobile();
-    const [debug] = useState(
-        () =>
-            typeof window !== 'undefined' &&
-            new URLSearchParams(window.location.search).has('orb-debug'),
-    );
+    // `?orbDebug=1` (or `?orb-debug`): route trace, stop rings and timing markers.
+    const [debug] = useState(() => {
+        if (typeof window === 'undefined') {
+            return false;
+        }
+
+        const params = new URLSearchParams(window.location.search);
+
+        return params.get('orbDebug') === '1' || params.has('orb-debug');
+    });
 
     const fontsReady = useFontsReady();
 
@@ -108,17 +114,20 @@ export default function OrbStage() {
     }
 
     return (
-        <OrbErrorBoundary>
-            <Suspense fallback={null}>
-                <OrbCanvas
-                    path={path}
-                    motion={motion}
-                    onReady={() => setReady(true)}
-                    mobile={mobile}
-                    reducedMotion={reducedMotion}
-                    debug={debug}
-                />
-            </Suspense>
-        </OrbErrorBoundary>
+        <>
+            {debug && <OrbMarkers path={path} />}
+            <OrbErrorBoundary>
+                <Suspense fallback={null}>
+                    <OrbCanvas
+                        path={path}
+                        motion={motion}
+                        onReady={() => setReady(true)}
+                        mobile={mobile}
+                        reducedMotion={reducedMotion}
+                        debug={debug}
+                    />
+                </Suspense>
+            </OrbErrorBoundary>
+        </>
     );
 }

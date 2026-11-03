@@ -75,6 +75,13 @@ export type OrbLane = {
  * `data-orb-stop`. Positions are in document px, so the stop stays valid
  * while scrolling. Convert to world space per frame with `docToWorld`.
  */
+/**
+ * A point in the scroll (from `data-orb-arrive` / `data-orb-depart`): where
+ * on the page (`elementY`, document px) meets where in the viewport
+ * (`viewportY`, px from its top), and the scroll position at which they do.
+ */
+export type OrbTiming = { scroll: number; elementY: number; viewportY: number };
+
 export type OrbStop = {
     id: string;
     index: number;
@@ -101,6 +108,16 @@ export type OrbStop = {
     via: OrbVia;
     /** Width of the page margin right of the content, in px. */
     margin: number;
+    /** The stop's section, document px. Its edges are where the orb crosses between sections. */
+    section: { top: number; bottom: number };
+    /**
+     * When the orb must have arrived (`data-orb-arrive`, default "top 60%")
+     * and when it may leave (`data-orb-depart`, default "bottom 80%"),
+     * measured against the section, or the stop itself with
+     * `data-orb-trigger="self"`. In between, it is parked.
+     */
+    arrive: OrbTiming;
+    depart: OrbTiming;
     /** The line it rolls down, for `data-orb-track` stops. */
     track: OrbTrack | null;
     /** The horizontal track it rolls along, for horizontal stops with a `data-orb-lane`. */

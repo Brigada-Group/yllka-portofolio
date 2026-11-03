@@ -16,14 +16,22 @@ export default function ContactSection() {
             aria-labelledby="contact-title"
             className="pt-28 pb-24 md:pt-44 md:pb-32"
         >
-            <div
-                data-orb-stop="contact"
-                data-orb-via="right"
-                className="mx-auto max-w-[1600px] px-4 md:px-8"
-            >
+            <div className="mx-auto max-w-[1600px] px-4 md:px-8">
                 <SectionLabel index={5}>Contact</SectionLabel>
 
-                <h2 id="contact-title" className="mt-6 text-giant">
+                {/*
+                  The orb stop: the heading itself. The orb arrives along the line from
+                  the right margin and is settled as the full stop by the time the
+                  heading's centre reaches the middle of the viewport, then stays.
+                */}
+                <h2
+                    id="contact-title"
+                    data-orb-stop="contact"
+                    data-orb-via="right"
+                    data-orb-trigger="self"
+                    data-orb-arrive="center 50%"
+                    className="mt-6 text-giant"
+                >
                     <span className="sr-only">Let&rsquo;s talk.</span>
                     <span aria-hidden="true">
                         Let&rsquo;s{' '}

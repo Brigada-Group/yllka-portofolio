@@ -9,6 +9,7 @@ import type {
     OrbSide,
     OrbStop,
     OrbLane,
+    OrbTiming,
     OrbTrack,
     OrbVia,
 } from './types';
@@ -406,6 +407,64 @@ function measureLane(
     };
 }
 
+/** When the orb must have arrived at a stop, and when it may leave: ScrollTrigger-style positions. */
+const DEFAULT_ARRIVE = 'top 60%';
+const DEFAULT_DEPART = 'bottom 80%';
+
+/**
+ * Resolves a ScrollTrigger-style position ("top 60%", "center center",
+ * "bottom 80%", "120px top") against an element's box, or a plain number as
+ * an absolute scroll position. Returns where on the element and where in the
+ * viewport the two meet, and the scroll position at which they do.
+ */
+export function resolvePosition(
+    value: string,
+    box: { top: number; bottom: number },
+    viewportHeight: number,
+): OrbTiming {
+    const trimmed = value.trim();
+
+    if (/^-?\d+(\.\d+)?$/.test(trimmed)) {
+        const scroll = Number(trimmed);
+
+        return { scroll, elementY: scroll, viewportY: 0 };
+    }
+
+    const [edge = 'top', place = 'top'] = trimmed.split(/\s+/);
+    const height = box.bottom - box.top;
+    const along = (token: string, size: number) => {
+        if (token === 'top') return 0;
+        if (token === 'center') return size / 2;
+        if (token === 'bottom') return size;
+        if (token.endsWith('%')) return (parseFloat(token) / 100) * size;
+
+        return parseFloat(token) || 0;
+    };
+    const elementY = box.top + along(edge, height);
+    const viewportY = along(place, viewportHeight);
+
+    return { scroll: elementY - viewportY, elementY, viewportY };
+}
+
+function readTiming(
+    element: HTMLElement,
+    box: { top: number; bottom: number },
+    viewportHeight: number,
+): { arrive: OrbTiming; depart: OrbTiming } {
+    return {
+        arrive: resolvePosition(
+            element.dataset.orbArrive ?? DEFAULT_ARRIVE,
+            box,
+            viewportHeight,
+        ),
+        depart: resolvePosition(
+            element.dataset.orbDepart ?? DEFAULT_DEPART,
+            box,
+            viewportHeight,
+        ),
+    };
+}
+
 /**
  * Measure every `[data-orb-stop]` element under `root`, in DOM order.
  * `pins` maps stop elements to the ScrollTriggers pinning their sections.
@@ -432,6 +491,9 @@ export function measureOrbLayout(
             const box = contentBox(element);
             const shiftY = window.scrollY + pinShift(pins.get(element));
 
+            const section = element.closest('section') ?? element;
+            const sectionRect = section.getBoundingClientRect();
+
             return {
                 element,
                 mode: readMode(element),
@@ -442,6 +504,10 @@ export function measureOrbLayout(
                     bottom: box.bottom + shiftY,
                     left: box.left + window.scrollX,
                     right: box.right + window.scrollX,
+                },
+                section: {
+                    top: sectionRect.top + shiftY,
+                    bottom: sectionRect.bottom + shiftY,
                 },
             };
         })
@@ -486,7 +552,7 @@ export function measureOrbLayout(
         : clamp((gutter - MARGIN * 2) / 2, MIN_RADIUS, MAX_RADIUS);
 
     const stops: OrbStop[] = measured.map(
-        ({ element, mode, side, bounds }, index) => {
+        ({ element, mode, side, bounds, section }, index) => {
             const trigger = compact ? undefined : pins.get(element);
             const pin = trigger ? measurePin(element, trigger) : null;
             const slot = slots[index];
@@ -508,6 +574,12 @@ export function measureOrbLayout(
                 bounds,
                 via: readVia(element),
                 margin: viewport.width - bounds.right,
+                section,
+                ...readTiming(
+                    element,
+                    element.dataset.orbTrigger === 'self' ? bounds : section,
+                    viewport.height,
+                ),
                 pin: null,
                 lane: null,
                 track: null,
@@ -523,8 +595,27 @@ export function measureOrbLayout(
             }
 
             if (track) {
+                // Roll down the line while it passes 60% of the viewport, so the orb stays level on screen.
+                const line = {
+                    top: track.track.top.y - track.radius,
+                    bottom: track.track.bottom.y + track.radius,
+                };
+                const timing = {
+                    arrive: resolvePosition(
+                        element.dataset.orbArrive ?? 'top 60%',
+                        line,
+                        viewport.height,
+                    ),
+                    depart: resolvePosition(
+                        element.dataset.orbDepart ?? 'bottom 60%',
+                        line,
+                        viewport.height,
+                    ),
+                };
+
                 return {
                     ...common,
+                    ...timing,
                     anchor: track.track.top,
                     radius: track.radius,
                     letter: false,

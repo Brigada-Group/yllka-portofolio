@@ -9,8 +9,6 @@ import type {
     RouteSegment,
 } from './types';
 
-/** Where the orb arrives at a stop: this far down the viewport (0 = top, 1 = bottom). */
-const ARRIVAL_FOCUS = 0.4;
 /** Corner rounding where the path turns, in px. */
 const CORNER_RADIUS = 96;
 const COMPACT_CORNER_RADIUS = 24;
@@ -207,6 +205,13 @@ function travel(from: Cursor, to: Target, layout: OrbLayout): RoutePoint[] {
         go({ ...at, y: from.bottom + EXIT_BELOW });
     }
 
+    // Small screens: resting points sit above the content, so step into the
+    // page margin before going anywhere, rather than down through the text.
+    if (layout.compact && from.via === 'none') {
+        const edge = at.x < width / 2 ? from.margin / 2 : marginX(from.margin);
+        go({ x: edge, y: at.y, r: marginRadius(from.margin, at.r) });
+    }
+
     const gapY = Math.max(at.y, (from.bottom + to.top) / 2);
 
     if (to.via === 'lane') {
@@ -271,7 +276,7 @@ export function pinProgress(stop: OrbStop, scroll: number): number {
  * on the route, so the orb's position depends only on the scroll.
  */
 export function buildOrbRoute(layout: OrbLayout, still: boolean): OrbRoute {
-    const { stops, radius, viewport, maxScroll } = layout;
+    const { stops, radius, maxScroll } = layout;
     const first = stops[0];
 
     if (!first) {
@@ -284,13 +289,15 @@ export function buildOrbRoute(layout: OrbLayout, still: boolean): OrbRoute {
         return staticRoute(rest);
     }
 
-    const arrival = (y: number) =>
-        clamp(y - viewport.height * ARRIVAL_FOCUS, 0, maxScroll);
+    // A scroll position the page can actually reach: if the end of the page
+    // comes first, the orb arrives (or leaves) there instead.
+    const reachable = (scroll: number) => clamp(scroll, 0, maxScroll);
     const legs: Omit<Leg, 'd0' | 'segment0'>[] = [];
+    // Parked at the first stop until it departs.
     let cursor: Cursor = {
         point: rest,
-        scroll: arrival(first.anchor.y),
-        bottom: first.bounds.bottom,
+        scroll: reachable(first.depart.scroll),
+        bottom: first.section.bottom,
         via: first.via,
         margin: first.margin,
     };
@@ -330,7 +337,7 @@ export function buildOrbRoute(layout: OrbLayout, still: boolean): OrbRoute {
         const point: RoutePoint = { ...stop.anchor, r: stop.radius };
         const target: Target = {
             point,
-            top: stop.bounds.top,
+            top: stop.section.top,
             via: stop.lane ? 'lane' : stop.via,
             margin: stop.margin,
             left: stop.bounds.left,
@@ -381,30 +388,33 @@ export function buildOrbRoute(layout: OrbLayout, still: boolean): OrbRoute {
             cursor = {
                 point: { x: lane.end, y: lane.y + span, r: lane.radius },
                 scroll: Math.max(pin.end, s0 + 1),
-                bottom: stop.bounds.bottom + span,
+                bottom: stop.section.bottom + span,
                 via: 'none',
                 margin: stop.margin,
             };
             continue;
         }
 
-        const s1 = after(arrival(point.y));
-        pushTravel(travel(cursor, target, layout), s1, !stop.letter);
+        // Travel from the last stop's departure, arriving by this stop's arrive point.
+        const arrive = after(reachable(stop.arrive.scroll));
+        pushTravel(travel(cursor, target, layout), arrive, !stop.letter);
+        // Then park until its depart point (the gap between legs holds the orb still).
+        const depart = Math.max(reachable(stop.depart.scroll), arrive);
         cursor = {
             point,
-            scroll: s1,
-            bottom: stop.bounds.bottom,
+            scroll: depart,
+            bottom: stop.section.bottom,
             via: stop.via,
             margin: stop.margin,
         };
 
         if (stop.track) {
-            // Roll down the line at the pace of the scroll, staying level on screen.
+            // On a track, use the hold to roll down the line instead, from arrive to depart.
             const bottom: RoutePoint = { ...stop.track.bottom, r: stop.radius };
             const points = [point, bottom];
-            const end = after(arrival(bottom.y));
+            const end = Math.max(depart, arrive + 1);
             legs.push({
-                s0: cursor.scroll,
+                s0: arrive,
                 s1: end,
                 pinned: false,
                 gear: 1,
