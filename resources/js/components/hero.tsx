@@ -30,7 +30,7 @@ export default function Hero() {
         <section
             id="hero"
             aria-labelledby="hero-title"
-            className="relative flex min-h-[calc(100svh-5rem)] flex-col px-4 pb-6 md:px-8"
+            className="relative mx-auto flex min-h-[calc(100svh-5rem)] max-w-[1600px] flex-col px-4 pb-6 md:px-8"
         >
             <div className="flex justify-between gap-6 pt-6 font-mono text-label text-muted uppercase">
                 <span>({site.role})</span>
@@ -48,7 +48,7 @@ export default function Hero() {
             <div
                 data-orb-stop="hero"
                 data-orb-side="left"
-                data-orb-exit="right"
+                data-orb-via="right"
                 className="mt-auto pt-16"
             >
                 <h1 id="hero-title">

@@ -48,6 +48,8 @@ class ProjectForm
                         TextInput::make('role')
                             ->required()
                             ->placeholder('UI/UX Designer & Developer'),
+                        TextInput::make('category')
+                            ->placeholder('Product design'),
                         TextInput::make('client'),
                         TextInput::make('year')
                             ->required()

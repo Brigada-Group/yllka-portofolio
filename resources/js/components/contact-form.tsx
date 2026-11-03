@@ -1,5 +1,36 @@
 import { Form, usePage } from '@inertiajs/react';
+import type { ReactNode } from 'react';
 import { store } from '@/routes/contact';
+
+const inputClass =
+    'w-full border-b border-foreground/20 bg-transparent py-3 text-body text-foreground outline-none transition-colors placeholder:text-muted/60 focus:border-accent';
+
+function Field({
+    label,
+    error,
+    children,
+}: {
+    label: string;
+    error?: string;
+    children: ReactNode;
+}) {
+    return (
+        <label className="block">
+            <span className="font-mono text-label text-muted uppercase">
+                {label}
+            </span>
+            {children}
+            {error && (
+                <span
+                    role="alert"
+                    className="mt-2 block text-label text-accent"
+                >
+                    {error}
+                </span>
+            )}
+        </label>
+    );
+}
 
 export default function ContactForm({
     className = '',
@@ -10,62 +41,57 @@ export default function ContactForm({
 
     return (
         <div className={className}>
-            {flash.success && <p role="status">{flash.success}</p>}
+            {flash.success && (
+                <p role="status" className="mb-8 text-body text-accent">
+                    {flash.success}
+                </p>
+            )}
 
             <Form
                 {...store.form()}
                 resetOnSuccess
                 options={{ preserveScroll: true }}
-                className="space-y-4"
+                className="space-y-8"
             >
                 {({ errors, processing }) => (
                     <>
-                        <div className="flex flex-col gap-1">
-                            <label htmlFor="name">Name</label>
-                            <input
-                                id="name"
-                                name="name"
-                                type="text"
-                                required
-                                autoComplete="name"
-                                className="border"
-                            />
-                            {errors.name && <p role="alert">{errors.name}</p>}
+                        <div className="grid gap-8 md:grid-cols-2">
+                            <Field label="Name" error={errors.name}>
+                                <input
+                                    name="name"
+                                    type="text"
+                                    required
+                                    autoComplete="name"
+                                    className={inputClass}
+                                />
+                            </Field>
+                            <Field label="Email" error={errors.email}>
+                                <input
+                                    name="email"
+                                    type="email"
+                                    required
+                                    autoComplete="email"
+                                    className={inputClass}
+                                />
+                            </Field>
                         </div>
-
-                        <div className="flex flex-col gap-1">
-                            <label htmlFor="email">Email</label>
-                            <input
-                                id="email"
-                                name="email"
-                                type="email"
-                                required
-                                autoComplete="email"
-                                className="border"
-                            />
-                            {errors.email && <p role="alert">{errors.email}</p>}
-                        </div>
-
-                        <div className="flex flex-col gap-1">
-                            <label htmlFor="message">Message</label>
+                        <Field label="Message" error={errors.message}>
                             <textarea
-                                id="message"
                                 name="message"
-                                rows={6}
+                                rows={4}
                                 required
-                                className="border"
+                                className={`${inputClass} resize-none`}
                             />
-                            {errors.message && (
-                                <p role="alert">{errors.message}</p>
-                            )}
-                        </div>
-
+                        </Field>
                         <button
                             type="submit"
                             disabled={processing}
-                            className="border px-4 py-2"
+                            className="group inline-flex items-center gap-3 rounded-full border border-foreground/30 px-6 py-3 font-mono text-label uppercase transition-colors hover:border-foreground hover:bg-foreground hover:text-background disabled:opacity-50"
                         >
                             {processing ? 'Sending…' : 'Send message'}
+                            <span className="transition-transform group-hover:translate-x-1">
+                                →
+                            </span>
                         </button>
                     </>
                 )}

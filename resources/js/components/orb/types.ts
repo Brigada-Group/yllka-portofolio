@@ -6,6 +6,17 @@ export type OrbMode = 'vertical' | 'horizontal';
 /** Which gutter beside the section content the orb sits in. */
 export type OrbSide = 'left' | 'right';
 
+/** How the orb reaches and leaves a stop inside text (see `data-orb-via`). */
+export type OrbVia = 'none' | 'down' | 'right';
+
+/** A vertical line the orb rolls down (see `data-orb-track`). Document px. */
+export type OrbTrack = {
+    top: DocPoint;
+    bottom: DocPoint;
+    /** Items lit up once the orb passes their top. */
+    entries: { element: HTMLElement; top: number }[];
+};
+
 /** A point in document coordinates (CSS px from the top-left of the page). */
 export type DocPoint = { x: number; y: number };
 
@@ -45,8 +56,10 @@ export type OrbPin = {
     items: OrbPinItem[];
     /** How far the row slides left over the pin, in px. */
     overflow: number;
-    /** Gutter x where the orb waits while the row slides. */
+    /** Where the orb rolls while the row slides: the middle of the lane (or the gutter without one). */
     entryX: number;
+    /** Largest orb that fits the lane, in px. */
+    laneRadius: number;
 };
 
 /**
@@ -74,10 +87,14 @@ export type OrbStop = {
     anchor: DocPoint;
     /** The orb's radius at this stop, in px: the layout radius, or the size of the dot it replaces. */
     radius: number;
-    /** Resting inside the text as the dot of a `data-orb-dot` "ı": part of the word, so it doesn't drift. */
+    /** Resting in a dot or slot (`data-orb-dot`, `data-orb-slot`): placed precisely, so it doesn't drift. */
     letter: boolean;
-    /** How it leaves a stop inside the text (`data-orb-exit`): along the line to the right, or down below it. */
-    exit: 'down' | 'right';
+    /** How it reaches and leaves this stop (`data-orb-via`). */
+    via: OrbVia;
+    /** Width of the page margin right of the content, in px. */
+    margin: number;
+    /** The line it rolls down, for `data-orb-track` stops. */
+    track: OrbTrack | null;
     pin: OrbPin | null;
 };
 

@@ -9,6 +9,7 @@ export type Project = {
     slug: string;
     short_description: string;
     role: string;
+    category: string | null;
     client: string | null;
     year: number;
     duration: string | null;
@@ -40,6 +41,7 @@ export type ProjectSummary = Pick<
     | 'slug'
     | 'short_description'
     | 'role'
+    | 'category'
     | 'client'
     | 'year'
     | 'tools'

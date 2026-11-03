@@ -19,7 +19,7 @@ use Illuminate\Support\Str;
  * @property list<string>|null $gallery
  */
 #[Fillable([
-    'title', 'slug', 'short_description', 'role', 'client', 'year', 'duration', 'tools',
+    'title', 'slug', 'short_description', 'role', 'category', 'client', 'year', 'duration', 'tools',
     'problem', 'process', 'solution', 'outcome', 'cover_image', 'gallery',
     'live_url', 'repo_url', 'figma_url', 'is_featured', 'is_published', 'sort_order',
 ])]

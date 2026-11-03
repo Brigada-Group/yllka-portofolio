@@ -26,6 +26,21 @@
     --text-lede--line-height: 1.1;
     --text-lede--letter-spacing: -0.02em;
     --text-hero: clamp(3rem, 12vw, 15rem);
+    --text-display: clamp(2.5rem, 6vw, 6.5rem);
+    --text-display--line-height: 0.95;
+    --text-display--letter-spacing: -0.03em;
+    --text-statement: clamp(1.75rem, 1rem + 3vw, 4.25rem);
+    --text-statement--line-height: 1.08;
+    --text-statement--letter-spacing: -0.025em;
+    --text-title: clamp(1.5rem, 1rem + 1.8vw, 3rem);
+    --text-title--line-height: 1;
+    --text-title--letter-spacing: -0.02em;
+    --text-marquee: clamp(3.5rem, 10vw, 11rem);
+    --text-marquee--line-height: 1;
+    --text-marquee--letter-spacing: -0.03em;
+    --text-giant: clamp(4.5rem, 18vw, 21rem);
+    --text-giant--line-height: 0.85;
+    --text-giant--letter-spacing: -0.045em;
     --text-hero--line-height: 0.9;
     --text-hero--letter-spacing: -0.03em;
 }
@@ -61,18 +76,50 @@ html {
 
 [data-orb-pinned] [data-orb-lane] {
     display: block;
-    height: 8rem;
+    height: 4rem;
 }
 
 [data-orb-pinned] [data-orb-viewport] {
     overflow: hidden;
 }
 
-/* The card the orb is rolling under. */
+/*
+ * Gallery cards, focused by the orb: --orb-focus is 1 for the card it is
+ * rolling under and falls to 0 a card's width away (set by the orb path).
+ */
 [data-orb-item] {
-    transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+    opacity: calc(0.35 + 0.65 * var(--orb-focus, 1));
+    filter: grayscale(calc(1 - var(--orb-focus, 1)));
+    transform: scale(calc(1 + 0.02 * var(--orb-focus, 1)));
 }
 
-[data-orb-item][data-orb-active] {
-    transform: translateY(-0.5rem) rotate(-1.5deg);
+/* A thin line the orb rolls along in a pinned section. */
+[data-orb-pinned] [data-orb-lane] {
+    background: linear-gradient(rgb(242 240 235 / 0.2), rgb(242 240 235 / 0.2))
+        center / 100% 1px no-repeat;
+}
+
+/* Track entries stay dim until the orb rolls past them (see orb-path.ts). */
+[data-orb-track-ready] [data-orb-entry] {
+    transition:
+        opacity 0.7s ease,
+        transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+[data-orb-track-ready] [data-orb-entry]:not([data-orb-passed]) {
+    opacity: 0.15;
+    transform: translateY(1rem);
+}
+
+/* The custom cursor replaces the pointer over elements that set data-cursor. */
+@media (hover: hover) and (pointer: fine) {
+    [data-cursor] {
+        cursor: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-orb-track-ready] [data-orb-entry] {
+        transition: none;
+    }
 }

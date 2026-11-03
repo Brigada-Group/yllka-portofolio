@@ -12,7 +12,7 @@ class ProjectController extends Controller
      * Columns needed for project cards. The case study body is only loaded on the detail page.
      */
     public const LIST_COLUMNS = [
-        'id', 'title', 'slug', 'short_description', 'role', 'client', 'year', 'tools', 'cover_image', 'is_featured',
+        'id', 'title', 'slug', 'short_description', 'role', 'category', 'client', 'year', 'tools', 'cover_image', 'is_featured',
     ];
 
     public function index(): Response

@@ -1,8 +1,9 @@
 import { gsap, ScrollTrigger } from '@/lib/gsap';
 import { measureOrbLayout, SELECTORS } from './measure';
-import { buildOrbRoute, pinnedRowOffset, pinProgress } from './route';
+import { buildOrbRoute, pinnedRowOffset } from './route';
 import type {
     OrbLayout,
+    OrbSample,
     OrbPathOptions,
     OrbPathStore,
     OrbRoute,
@@ -13,8 +14,12 @@ export const ORB_STOP_SELECTOR = SELECTORS.stop;
 
 /** Marks a stop whose section is pinned. CSS uses it to show the lane and clip the row. */
 const PINNED_ATTRIBUTE = 'data-orb-pinned';
-/** Set on the card the orb is currently under. */
-const ACTIVE_ATTRIBUTE = 'data-orb-active';
+/** CSS custom property on each card: 1 when the orb is at its centre, falling to 0 a card's width away. */
+const FOCUS_PROPERTY = '--orb-focus';
+/** Set on a track entry once the orb has rolled past its top. */
+const PASSED_ATTRIBUTE = 'data-orb-passed';
+/** Set on a track stop while the orb drives it, so entries start dimmed (see app.css). */
+const TRACK_READY_ATTRIBUTE = 'data-orb-track-ready';
 /**
  * Catch-up lag: the orb (and the pinned rows it drives) follows a damped copy
  * of the scroll, closing about 95% of the gap in 1.2s, like ScrollTrigger's
@@ -26,7 +31,7 @@ const SCROLL_LAG = 2.5;
 const SNAP_SCREENS = 2;
 
 /** Scroll length of a pinned section, per card plus one, as a share of the viewport height. */
-const PIN_LENGTH_PER_ITEM = 0.55;
+const PIN_LENGTH_PER_ITEM = 0.8;
 
 function createPin(element: HTMLElement): ScrollTrigger {
     const section = element.closest<HTMLElement>('section') ?? element;
@@ -60,8 +65,8 @@ function removePin(element: HTMLElement, trigger: ScrollTrigger) {
     }
 
     element
-        .querySelectorAll(`[${ACTIVE_ATTRIBUTE}]`)
-        .forEach((item) => item.removeAttribute(ACTIVE_ATTRIBUTE));
+        .querySelectorAll<HTMLElement>(SELECTORS.item)
+        .forEach((item) => item.style.removeProperty(FOCUS_PROPERTY));
 }
 
 /**
@@ -80,35 +85,43 @@ export function createOrbPath(
     let frame = 0;
     let lastHeight = 0;
     let scroll = window.scrollY;
+    const sample: OrbSample = { x: 0, y: 0, r: 0, distance: 0, segment: -1 };
 
     /** Slide each pinned row and light up its cards one at a time, in order. */
-    const applyPin = (stop: OrbStop, scroll: number) => {
+    /** Slide each pinned row, and focus the cards by how close each is to the orb. */
+    const applyPin = (stop: OrbStop, scroll: number, orbX: number) => {
         const pin = stop.pin;
 
         if (!pin) {
             return;
         }
 
-        const pinned = scroll > pin.start && scroll < pin.end;
-        const active = Math.min(
-            pin.items.length - 1,
-            Math.floor(pinProgress(stop, scroll) * pin.items.length),
-        );
+        const offset = pinnedRowOffset(stop, scroll);
 
         if (pin.row) {
-            gsap.set(pin.row, { x: pinnedRowOffset(stop, scroll) });
+            gsap.set(pin.row, { x: offset });
         }
 
-        pin.items.forEach((item, index) => {
-            item.element.toggleAttribute(
-                ACTIVE_ATTRIBUTE,
-                pinned && index === active,
-            );
-        });
+        for (const item of pin.items) {
+            const distance = Math.abs(item.center + offset - orbX);
+            const focus = Math.max(0, 1 - distance / item.width);
+            item.element.style.setProperty(FOCUS_PROPERTY, focus.toFixed(3));
+        }
+    };
+
+    /** Light up the entries beside a track once the orb has rolled past them. */
+    const applyTrack = (stop: OrbStop, orbY: number) => {
+        for (const entry of stop.track?.entries ?? []) {
+            entry.element.toggleAttribute(PASSED_ATTRIBUTE, orbY >= entry.top);
+        }
     };
 
     const applyPins = () => {
-        layout.stops.forEach((stop) => applyPin(stop, scroll));
+        const orb = route.sample(scroll, sample);
+        layout.stops.forEach((stop) => {
+            applyPin(stop, scroll, orb.x);
+            applyTrack(stop, orb.y);
+        });
     };
 
     // Ease the lagged scroll towards the real one, once per frame (after Lenis).
@@ -177,6 +190,13 @@ export function createOrbPath(
 
         layout = next;
         route = buildOrbRoute(layout, options.still);
+        // Dim track entries until the orb reaches them, unless the orb stays still (reduced motion).
+        layout.stops.forEach((stop) =>
+            stop.element.toggleAttribute(
+                TRACK_READY_ATTRIBUTE,
+                stop.track !== null && !options.still,
+            ),
+        );
         lastHeight = layout.documentHeight;
         applyPins();
         listeners.forEach((listener) => listener());
@@ -237,6 +257,9 @@ export function createOrbPath(
             document.fonts?.removeEventListener('loadingdone', refresh);
             ScrollTrigger.removeEventListener('refresh', refresh);
             pins.forEach((trigger, element) => removePin(element, trigger));
+            layout.stops.forEach((stop) =>
+                stop.element.removeAttribute(TRACK_READY_ATTRIBUTE),
+            );
             pins.clear();
             listeners.clear();
         },

@@ -23,6 +23,7 @@ class ProjectFactory extends Factory
             'slug' => fn (array $attributes) => Str::slug($attributes['title']),
             'short_description' => fake()->sentence(16),
             'role' => fake()->randomElement(['UI/UX Designer & Developer', 'Product Designer', 'Frontend Developer']),
+            'category' => fake()->randomElement(['Product design', 'Web app', 'Design system']),
             'client' => fake()->optional()->company(),
             'year' => fake()->numberBetween(2019, (int) date('Y')),
             'duration' => fake()->optional()->randomElement(['6 weeks', '3 months', '6 months']),

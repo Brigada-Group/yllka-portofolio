@@ -8,6 +8,8 @@ import type {
     OrbPin,
     OrbSide,
     OrbStop,
+    OrbTrack,
+    OrbVia,
 } from './types';
 
 export const SELECTORS = {
@@ -24,6 +26,12 @@ export const SELECTORS = {
     beside: '[data-orb-beside]',
     /** A dotless "ı" whose missing dot the orb becomes, taking the dot's size. */
     dot: '[data-orb-dot]',
+    /** An empty box the orb rests in, centred and sized to fit (min(width, height) / 2). */
+    slot: '[data-orb-slot]',
+    /** A vertical line the orb rolls down as the page scrolls; as wide as the orb. */
+    track: '[data-orb-track]',
+    /** An item beside a track, lit up once the orb has rolled past its top. */
+    entry: '[data-orb-entry]',
 } as const;
 
 /** Space kept between the orb and content or the viewport edge. */
@@ -31,6 +39,8 @@ const MARGIN = 16;
 const MIN_RADIUS = 18;
 const MAX_RADIUS = 36;
 const COMPACT_RADIUS = 18;
+/** Below this width the orb uses its compact path, when no stop has a gutter to measure. */
+const COMPACT_WIDTH = 768;
 /** Space between text and an orb resting beside it. */
 const BESIDE_GAP = 32;
 
@@ -41,9 +51,15 @@ function readMode(element: HTMLElement): OrbMode {
     return element.dataset.orbMode === 'horizontal' ? 'horizontal' : 'vertical';
 }
 
-/** How the orb leaves a stop it rests inside the text of: `right` along the line, or `down` below it. */
-function readExit(element: HTMLElement): 'down' | 'right' {
-    return element.dataset.orbExit === 'right' ? 'right' : 'down';
+/**
+ * How the orb reaches and leaves a stop that sits inside text
+ * (`data-orb-via`): `right` along the line from the page's right margin,
+ * or `down` from below. Anything else travels the usual way.
+ */
+function readVia(element: HTMLElement): OrbVia {
+    const via = element.dataset.orbVia;
+
+    return via === 'right' || via === 'down' ? via : 'none';
 }
 
 function readSide(element: HTMLElement): OrbSide {
@@ -275,6 +291,54 @@ function dotSlot(
     };
 }
 
+/** The centre and fitting radius of a `[data-orb-slot]` box, in document px. Null when hidden. */
+function boxSlot(
+    element: HTMLElement,
+): { anchor: DocPoint; radius: number } | null {
+    const slot = element.querySelector<HTMLElement>(SELECTORS.slot);
+
+    if (!slot || slot.offsetWidth === 0 || slot.offsetHeight === 0) {
+        return null;
+    }
+
+    const { x, y } = layoutOffset(slot);
+
+    return {
+        anchor: { x: x + slot.offsetWidth / 2, y: y + slot.offsetHeight / 2 },
+        radius: Math.min(slot.offsetWidth, slot.offsetHeight) / 2,
+    };
+}
+
+/**
+ * A `[data-orb-track]` line: the orb rolls from its top to its bottom,
+ * sized to the line's width, lighting up `[data-orb-entry]` items as it passes.
+ */
+function measureTrack(
+    element: HTMLElement,
+    maxRadius: number,
+): { track: OrbTrack; radius: number } | null {
+    const line = element.querySelector<HTMLElement>(SELECTORS.track);
+
+    if (!line || line.offsetHeight === 0) {
+        return null;
+    }
+
+    const { x, y } = layoutOffset(line);
+    const radius = Math.min(line.offsetWidth / 2, maxRadius);
+    const centre = x + line.offsetWidth / 2;
+
+    return {
+        radius,
+        track: {
+            top: { x: centre, y: y + radius },
+            bottom: { x: centre, y: y + line.offsetHeight - radius },
+            entries: Array.from(
+                element.querySelectorAll<HTMLElement>(SELECTORS.entry),
+            ).map((entry) => ({ element: entry, top: layoutOffset(entry).y })),
+        },
+    };
+}
+
 function measurePin(
     element: HTMLElement,
     trigger: ScrollTrigger,
@@ -295,6 +359,10 @@ function measurePin(
 
     const lane = element.querySelector<HTMLElement>(SELECTORS.lane);
     const laneRect = lane?.getBoundingClientRect();
+    // The orb rolls at the middle of the lane, sized to its height.
+    const laneX = laneRect
+        ? laneRect.left + laneRect.width / 2 + window.scrollX
+        : null;
     // Without a lane, roll along the bottom edge of the content.
     const laneY = laneRect
         ? laneRect.top + laneRect.height / 2 - sectionRect.top
@@ -324,7 +392,8 @@ function measurePin(
             row && viewport
                 ? Math.max(0, row.scrollWidth - viewport.clientWidth)
                 : 0,
-        entryX: gutterCenter(bounds, side, viewportWidth),
+        entryX: laneX ?? gutterCenter(bounds, side, viewportWidth),
+        laneRadius: laneRect ? laneRect.height / 2 - 4 : Infinity,
     };
 }
 
@@ -380,15 +449,29 @@ export function measureOrbLayout(
         };
     }
 
-    const slots = measured.map(({ element }) => dotSlot(element));
+    // Stops that place the orb themselves (in a letter, a slot, on a track or
+    // a lane) don't need a gutter beside their content.
+    const slots = measured.map(
+        ({ element }) => dotSlot(element) ?? boxSlot(element),
+    );
+    const placesOrb = measured.map(
+        ({ element, mode }, index) =>
+            slots[index] !== null ||
+            element.querySelector(SELECTORS.track) !== null ||
+            (mode === 'horizontal' &&
+                element.querySelector(SELECTORS.lane) !== null),
+    );
 
-    // Size the orb to the narrowest gutter it has to travel through. Stops
-    // where it sits in a letter don't use their gutter.
+    // Size the orb to the narrowest gutter it has to travel through. Without
+    // any gutter stops, go compact on small screens.
     const gutters = measured
-        .filter((_, index) => !slots[index])
+        .filter((_, index) => !placesOrb[index])
         .map(({ bounds, side }) => gutterWidth(bounds, side, viewport.width));
     const gutter = gutters.length > 0 ? Math.min(...gutters) : viewport.width;
-    const compact = gutter < MIN_RADIUS * 2 + MARGIN * 2;
+    const compact =
+        gutters.length > 0
+            ? gutter < MIN_RADIUS * 2 + MARGIN * 2
+            : viewport.width < COMPACT_WIDTH;
     const radius = compact
         ? COMPACT_RADIUS
         : clamp((gutter - MARGIN * 2) / 2, MIN_RADIUS, MAX_RADIUS);
@@ -400,30 +483,42 @@ export function measureOrbLayout(
                 ? measurePin(element, trigger, bounds, side, viewport.width)
                 : null;
             const slot = slots[index];
-
-            if (slot) {
-                return {
-                    id: element.dataset.orbStop || `stop-${index}`,
-                    index,
-                    mode,
-                    side,
-                    element,
-                    bounds,
-                    anchor: slot.anchor,
-                    radius: slot.radius,
-                    letter: true,
-                    exit: readExit(element),
-                    pin: null,
-                };
-            }
-
-            return {
+            const track = slot ? null : measureTrack(element, radius);
+            const common = {
                 id: element.dataset.orbStop || `stop-${index}`,
                 index,
                 mode,
                 side,
                 element,
                 bounds,
+                via: readVia(element),
+                margin: viewport.width - bounds.right,
+            };
+
+            if (slot) {
+                return {
+                    ...common,
+                    anchor: slot.anchor,
+                    radius: slot.radius,
+                    letter: true,
+                    pin: null,
+                    track: null,
+                };
+            }
+
+            if (track) {
+                return {
+                    ...common,
+                    anchor: track.track.top,
+                    radius: track.radius,
+                    letter: false,
+                    pin: null,
+                    track: track.track,
+                };
+            }
+
+            return {
+                ...common,
                 anchor: pin
                     ? {
                           x: pin.entryX,
@@ -437,10 +532,10 @@ export function measureOrbLayout(
                           compact,
                           viewport.width,
                       ),
-                radius,
+                radius: pin ? Math.min(pin.laneRadius, radius) : radius,
                 letter: false,
-                exit: readExit(element),
                 pin,
+                track: null,
             };
         },
     );

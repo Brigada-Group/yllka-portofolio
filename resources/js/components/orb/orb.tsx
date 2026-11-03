@@ -222,9 +222,17 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
         let driftX = 0;
         let driftY = 0;
 
-        // Not while it's sitting in a letter: it's part of the word there.
-        const inLetter =
-            point.segment === -1 && path.get().stops[0]?.letter === true;
+        // Not while it rests in a dot or slot: it's placed precisely there.
+        const inLetter = path
+            .get()
+            .stops.some(
+                (stop) =>
+                    stop.letter &&
+                    Math.hypot(
+                        stop.anchor.x - point.x,
+                        stop.anchor.y - point.y,
+                    ) < 1,
+            );
 
         if (p.active && state.idle > IDLE_DELAY && !inLetter) {
             driftX = (p.x - screenX) * DRIFT_PULL;

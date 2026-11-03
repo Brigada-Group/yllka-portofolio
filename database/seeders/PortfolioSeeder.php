@@ -28,6 +28,7 @@ class PortfolioSeeder extends Seeder
         $projects = [
             [
                 'title' => 'Clinic Booking Redesign',
+                'category' => 'Product design',
                 'short_description' => 'Reworking the appointment booking flow for a network of physiotherapy clinics, cutting drop-off on mobile by more than a third.',
                 'role' => 'UI/UX Designer & Developer',
                 'client' => 'Physio Plus',
@@ -44,6 +45,7 @@ class PortfolioSeeder extends Seeder
             ],
             [
                 'title' => 'Revenue Dashboard for Hotels',
+                'category' => 'Data & dashboards',
                 'short_description' => 'Designing a dashboard that lets small hotel owners understand pricing and occupancy without a revenue manager.',
                 'role' => 'Product Designer & Frontend Developer',
                 'client' => 'StayWell',
@@ -58,6 +60,7 @@ class PortfolioSeeder extends Seeder
             ],
             [
                 'title' => 'Volunteer Onboarding App',
+                'category' => 'Mobile app',
                 'short_description' => 'A mobile-first onboarding flow for a food bank that relies on hundreds of new volunteers every season.',
                 'role' => 'UI/UX Designer',
                 'client' => 'City Food Bank',
@@ -73,6 +76,7 @@ class PortfolioSeeder extends Seeder
             ],
             [
                 'title' => 'Design System for an Internal Tool Suite',
+                'category' => 'Design system',
                 'short_description' => 'Consolidating five internal tools into one shared component library and documentation site.',
                 'role' => 'Frontend Developer',
                 'client' => null,
@@ -87,6 +91,7 @@ class PortfolioSeeder extends Seeder
             ],
             [
                 'title' => 'Recipe Planner Concept',
+                'category' => 'Concept',
                 'short_description' => 'A self-initiated concept exploring how meal planning could feel less like a chore.',
                 'role' => 'UI/UX Designer & Developer',
                 'client' => null,
