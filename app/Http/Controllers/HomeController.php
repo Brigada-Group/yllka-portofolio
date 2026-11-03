@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Experience;
 use App\Models\Project;
 use App\Models\Skill;
 use Inertia\Inertia;
@@ -19,6 +20,7 @@ class HomeController extends Controller
                 ->get(ProjectController::LIST_COLUMNS)
                 ->setAppends(['cover_image_url']),
             'skills' => Skill::query()->ordered()->get(),
+            'experiences' => Experience::query()->ordered()->get(),
         ]);
     }
 }

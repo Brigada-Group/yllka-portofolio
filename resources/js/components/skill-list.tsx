@@ -7,9 +7,21 @@ const categories: { value: SkillCategory; label: string }[] = [
     { value: 'tools', label: 'Tools' },
 ];
 
-export default function SkillList({ skills }: { skills: Skill[] }) {
+type SkillListProps = {
+    skills: Skill[];
+    /** `row` lays the categories out side by side, for horizontal sections. */
+    layout?: 'grid' | 'row';
+};
+
+export default function SkillList({ skills, layout = 'grid' }: SkillListProps) {
     return (
-        <div className="grid gap-6 sm:grid-cols-2">
+        <div
+            className={
+                layout === 'row'
+                    ? 'flex gap-6 overflow-x-auto'
+                    : 'grid gap-6 sm:grid-cols-2'
+            }
+        >
             {categories.map((category) => {
                 const items = skills.filter(
                     (skill) => skill.category === category.value,
@@ -20,7 +32,12 @@ export default function SkillList({ skills }: { skills: Skill[] }) {
                 }
 
                 return (
-                    <div key={category.value}>
+                    <div
+                        key={category.value}
+                        className={
+                            layout === 'row' ? 'w-56 shrink-0' : undefined
+                        }
+                    >
                         <h3>{category.label}</h3>
                         <ul>
                             {items.map((skill) => (

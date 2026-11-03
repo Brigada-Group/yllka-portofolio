@@ -1,50 +1,122 @@
 import { Link, usePage } from '@inertiajs/react';
+import type { ReactNode } from 'react';
+import ContactForm from '@/components/contact-form';
+import ExperienceTimeline from '@/components/experience-timeline';
+import { OrbStage } from '@/components/orb';
+import type { OrbMode, OrbSide } from '@/components/orb';
 import ProjectCard from '@/components/project-card';
 import Seo from '@/components/seo';
 import SkillList from '@/components/skill-list';
-import { contact } from '@/routes';
+import { about } from '@/routes';
 import projects from '@/routes/projects';
-import type { ProjectSummary, Skill } from '@/types';
+import type { Experience, ProjectSummary, Skill } from '@/types';
 
 type HomeProps = {
     featuredProjects: ProjectSummary[];
     skills: Skill[];
+    experiences: Experience[];
 };
 
-export default function Home({ featuredProjects, skills }: HomeProps) {
+type SectionProps = {
+    id: string;
+    mode?: OrbMode;
+    side: OrbSide;
+    className?: string;
+    children: ReactNode;
+};
+
+/**
+ * A full-width home section. The inner box is the orb stop: the orb rests
+ * in the gutter beside it (or above it on narrow screens), never on top.
+ */
+function Section({
+    id,
+    mode = 'vertical',
+    side,
+    className = '',
+    children,
+}: SectionProps) {
+    return (
+        <section id={id} aria-labelledby={`${id}-title`} className={className}>
+            <div
+                data-orb-stop={id}
+                data-orb-mode={mode}
+                data-orb-side={side}
+                className="mx-auto w-full max-w-3xl px-4"
+            >
+                {children}
+            </div>
+        </section>
+    );
+}
+
+export default function Home({
+    featuredProjects,
+    skills,
+    experiences,
+}: HomeProps) {
     const { site } = usePage().props;
 
     return (
         <>
             <Seo description={site.headline} />
+            <OrbStage />
 
-            <section className="space-y-4">
-                {site.avatar_url && (
-                    <img
-                        src={site.avatar_url}
-                        alt={site.name}
-                        className="size-24 object-cover"
-                    />
-                )}
-                <h1>{site.name}</h1>
+            <Section
+                id="hero"
+                side="right"
+                className="flex min-h-[calc(100svh-5rem)] items-center"
+            >
+                <h1 id="hero-title">{site.name}</h1>
                 <p>{site.headline}</p>
-                <Link href={contact()}>Get in touch</Link>
-            </section>
+            </Section>
 
-            <section className="mt-12 space-y-6">
-                <h2>Selected work</h2>
-                <div className="grid gap-8 sm:grid-cols-2">
+            <Section id="about" side="left" className="py-24 md:py-32">
+                <h2 id="about-title">About</h2>
+                <p className="whitespace-pre-line">{site.bio}</p>
+                <Link href={about()}>More about me</Link>
+            </Section>
+
+            <Section
+                id="projects"
+                mode="horizontal"
+                side="left"
+                className="py-24 md:py-32"
+            >
+                <h2 id="projects-title">Selected work</h2>
+                <div className="mt-6 flex gap-6 overflow-x-auto">
                     {featuredProjects.map((project) => (
-                        <ProjectCard key={project.id} project={project} />
+                        <div key={project.id} className="w-72 shrink-0">
+                            <ProjectCard project={project} />
+                        </div>
                     ))}
                 </div>
                 <Link href={projects.index()}>All projects</Link>
-            </section>
+            </Section>
 
-            <section className="mt-12 space-y-6">
-                <h2>Skills</h2>
-                <SkillList skills={skills} />
-            </section>
+            <Section
+                id="skills"
+                mode="horizontal"
+                side="right"
+                className="py-24 md:py-32"
+            >
+                <h2 id="skills-title">Skills</h2>
+                <div className="mt-6">
+                    <SkillList skills={skills} layout="row" />
+                </div>
+            </Section>
+
+            <Section id="experience" side="left" className="py-24 md:py-32">
+                <h2 id="experience-title">Experience</h2>
+                <div className="mt-6">
+                    <ExperienceTimeline experiences={experiences} />
+                </div>
+            </Section>
+
+            <Section id="contact" side="right" className="py-24 md:py-32">
+                <h2 id="contact-title">Contact</h2>
+                <ContactForm className="mt-6 max-w-lg" />
+            </Section>
         </>
     );
 }

@@ -6,11 +6,12 @@ use App\Models\Skill;
 use App\Models\Testimonial;
 use Inertia\Testing\AssertableInertia as Assert;
 
-test('home page shows featured published projects and skills', function () {
+test('home page shows featured published projects, skills and experience', function () {
     Project::factory()->featured()->count(2)->create();
     Project::factory()->create();
     Project::factory()->featured()->draft()->create();
     Skill::factory()->count(3)->create();
+    Experience::factory()->count(2)->create();
 
     $this->get('/')
         ->assertOk()
@@ -18,6 +19,7 @@ test('home page shows featured published projects and skills', function () {
             ->component('home')
             ->has('featuredProjects', 2)
             ->has('skills', 3)
+            ->has('experiences', 2)
             ->has('site.name'));
 });
 
