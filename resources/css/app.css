@@ -66,17 +66,20 @@ html {
 }
 
 /*
- * Pinned horizontal sections (see resources/js/components/orb/orb-path.ts).
- * Without pinning (mobile, reduced motion) rows scroll natively and the lane
- * takes no space.
+ * Horizontal sections (see resources/js/components/orb/orb-path.ts). On
+ * desktop the section pins and the row slides; on small screens and with
+ * reduced motion the row scrolls natively.
+ *
+ * The lane holds the track the orb rolls along: a hairline along its bottom
+ * edge, which the orb sits on.
  */
 [data-orb-lane] {
-    display: none;
-}
-
-[data-orb-pinned] [data-orb-lane] {
-    display: block;
     height: 4rem;
+    background: linear-gradient(
+            rgb(242 240 235 / 0.14),
+            rgb(242 240 235 / 0.14)
+        )
+        bottom / 100% 1px no-repeat;
 }
 
 [data-orb-pinned] [data-orb-viewport] {
@@ -84,19 +87,16 @@ html {
 }
 
 /*
- * Gallery cards, focused by the orb: --orb-focus is 1 for the card it is
- * rolling under and falls to 0 a card's width away (set by the orb path).
+ * Cards focused by the orb: --orb-focus is 1 for the card the orb is at and
+ * falls to 0 a card's width away. Subtle: dimmed and a little desaturated.
  */
 [data-orb-item] {
-    opacity: calc(0.35 + 0.65 * var(--orb-focus, 1));
-    filter: grayscale(calc(1 - var(--orb-focus, 1)));
-    transform: scale(calc(1 + 0.02 * var(--orb-focus, 1)));
+    opacity: calc(0.45 + 0.55 * var(--orb-focus, 1));
+    filter: saturate(calc(0.55 + 0.45 * var(--orb-focus, 1)));
 }
 
-/* A thin line the orb rolls along in a pinned section. */
-[data-orb-pinned] [data-orb-lane] {
-    background: linear-gradient(rgb(242 240 235 / 0.2), rgb(242 240 235 / 0.2))
-        center / 100% 1px no-repeat;
+[data-orb-item] [data-focus-text] {
+    opacity: calc(0.75 + 0.25 * var(--orb-focus, 1));
 }
 
 /* Track entries stay dim until the orb rolls past them (see orb-path.ts). */

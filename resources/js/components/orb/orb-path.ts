@@ -109,6 +109,57 @@ export function createOrbPath(
         }
     };
 
+    /**
+     * Unpinned lanes (small screens): the row scrolls natively, and the orb
+     * rolls along the track in step with it. Shift per stop index, in px.
+     */
+    const laneShifts = new Map<number, number>();
+    let laneListeners: (() => void)[] = [];
+
+    const applyLaneScroll = (stop: OrbStop) => {
+        const lane = stop.lane;
+        const viewport = lane?.viewport;
+
+        if (!lane || !viewport || options.still) {
+            return;
+        }
+
+        const range = viewport.scrollWidth - viewport.clientWidth;
+        const shift =
+            range > 0
+                ? (lane.end - lane.start) * (viewport.scrollLeft / range)
+                : 0;
+        laneShifts.set(stop.index, shift);
+
+        // Focus the cards nearest the orb, as on the pinned version.
+        const orbX = lane.start + shift - window.scrollX;
+        for (const item of lane.items) {
+            const rect = item.getBoundingClientRect();
+            const distance = Math.abs(rect.left + rect.width / 2 - orbX);
+            item.style.setProperty(
+                FOCUS_PROPERTY,
+                Math.max(0, 1 - distance / rect.width).toFixed(3),
+            );
+        }
+    };
+
+    const bindLanes = () => {
+        laneListeners.forEach((unbind) => unbind());
+        laneShifts.clear();
+        laneListeners = layout.stops
+            .filter((stop) => stop.lane && !stop.pin && stop.lane.viewport)
+            .map((stop) => {
+                const viewport = stop.lane!.viewport!;
+                const onScroll = () => applyLaneScroll(stop);
+                viewport.addEventListener('scroll', onScroll, {
+                    passive: true,
+                });
+                onScroll();
+
+                return () => viewport.removeEventListener('scroll', onScroll);
+            });
+    };
+
     /** Light up the entries beside a track once the orb has rolled past them. */
     const applyTrack = (stop: OrbStop, orbY: number) => {
         for (const entry of stop.track?.entries ?? []) {
@@ -190,6 +241,7 @@ export function createOrbPath(
 
         layout = next;
         route = buildOrbRoute(layout, options.still);
+        bindLanes();
         // Dim track entries until the orb reaches them, unless the orb stays still (reduced motion).
         layout.stops.forEach((stop) =>
             stop.element.toggleAttribute(
@@ -242,6 +294,24 @@ export function createOrbPath(
         get: () => layout,
         route: () => route,
         scroll: () => scroll,
+        laneShift: (point) => {
+            let shift = 0;
+
+            // Full shift while resting on the lane's start, fading out as the orb leaves it.
+            laneShifts.forEach((dx, index) => {
+                const stop = layout.stops[index];
+
+                if (stop) {
+                    const away = Math.hypot(
+                        point.x - stop.anchor.x,
+                        point.y - stop.anchor.y,
+                    );
+                    shift += dx * Math.max(0, 1 - away / (stop.radius * 2));
+                }
+            });
+
+            return shift;
+        },
         subscribe: (listener) => {
             listeners.add(listener);
 
@@ -251,6 +321,7 @@ export function createOrbPath(
         destroy: () => {
             cancelAnimationFrame(frame);
             gsap.ticker.remove(tick);
+            laneListeners.forEach((unbind) => unbind());
             resizeObserver.disconnect();
             mutationObserver.disconnect();
             window.removeEventListener('resize', refresh);

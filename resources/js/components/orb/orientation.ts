@@ -1,5 +1,5 @@
 import { Quaternion, Vector3 } from 'three';
-import type { OrbRoute, OrbSample } from './types';
+import type { OrbRoute } from './types';
 
 /**
  * The orb's rotation as a pure function of how far it has rolled, so
@@ -7,11 +7,9 @@ import type { OrbRoute, OrbSample } from './types';
  *
  * Rolling on the page plane: moving in direction d (screen px, y down)
  * turns the orb about the axis (dy, dx, 0) in world space, by
- * distance / (radius × ROLL_GEAR) radians. True rolling (gear 1) spins a
- * small orb many times a second on a quick scroll, which strobes at 60fps;
- * geared down it still reads as rolling, calmly.
+ * distance / (radius × gear) radians. Gear 1 is true rolling (used on the
+ * slow track legs); travel legs are geared down so quick scrolls don't strobe.
  */
-const ROLL_GEAR = 4;
 export class OrbOrientation {
     private readonly starts: Quaternion[] = [];
     private readonly axes: Vector3[] = [];
@@ -29,44 +27,61 @@ export class OrbOrientation {
 
         for (const segment of route.segments) {
             const axis = new Vector3(segment.dy, segment.dx, 0);
-            const usable = axis.lengthSq() > 0 && segment.r > 0;
-            const radius = this.rollRadius(segment.r);
 
             this.starts.push(current.clone());
             this.axes.push(axis);
 
-            if (usable) {
+            if (axis.lengthSq() > 0 && segment.r > 0) {
                 current = new Quaternion()
-                    .setFromAxisAngle(axis, segment.length / radius)
+                    .setFromAxisAngle(
+                        axis,
+                        segment.length /
+                            this.rollRadius(segment.r, segment.gear),
+                    )
                     .multiply(current);
             }
         }
     }
 
-    private rollRadius(radius: number): number {
-        return Math.max(radius, this.minRadius) * ROLL_GEAR;
+    /** True rolling uses the real radius; geared travel never rolls as if smaller than `minRadius`. */
+    private rollRadius(radius: number, gear: number): number {
+        return gear === 1 ? radius : Math.max(radius, this.minRadius) * gear;
     }
 
-    /** Writes the orientation for a route sample into `target`. */
-    at(sample: OrbSample, target: Quaternion): Quaternion {
-        const segment = this.route.segments[sample.segment];
+    /** Writes the orientation after rolling `distance` px along the route into `target`. */
+    at(distance: number, target: Quaternion): Quaternion {
+        const segments = this.route.segments;
 
-        if (!segment) {
+        if (segments.length === 0 || distance <= 0) {
             return target.identity();
         }
 
-        const start = this.starts[sample.segment];
-        const axis = this.axes[sample.segment];
+        // Binary search for the segment containing the distance.
+        let lo = 0;
+        let hi = segments.length - 1;
 
-        if (axis.lengthSq() === 0 || segment.r === 0) {
-            return target.copy(start);
+        while (lo < hi) {
+            const mid = (lo + hi + 1) >> 1;
+
+            if (segments[mid].d0 <= distance) {
+                lo = mid;
+            } else {
+                hi = mid - 1;
+            }
         }
 
-        const angle =
-            (sample.distance - segment.d0) / this.rollRadius(segment.r);
+        const segment = segments[lo];
+        const axis = this.axes[lo];
+
+        if (axis.lengthSq() === 0 || segment.r === 0) {
+            return target.copy(this.starts[lo]);
+        }
+
+        const along = Math.min(distance - segment.d0, segment.length);
+        const angle = along / this.rollRadius(segment.r, segment.gear);
 
         return target.copy(
-            this.step.setFromAxisAngle(axis, angle).multiply(start),
+            this.step.setFromAxisAngle(axis, angle).multiply(this.starts[lo]),
         );
     }
 }

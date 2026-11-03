@@ -114,7 +114,8 @@ class PortfolioSeeder extends Seeder
                 'is_featured' => false,
                 'is_published' => true,
                 ...$data,
-                'cover_image' => PlaceholderImage::make('projects/covers', $data['title']),
+                // No cover: the site shows a gradient mesh until one is uploaded.
+                'cover_image' => null,
                 'gallery' => collect(range(1, 3))
                     ->map(fn (int $i) => PlaceholderImage::make('projects/gallery', "{$data['title']} {$i}"))
                     ->all(),

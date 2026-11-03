@@ -41,25 +41,33 @@ export type OrbPinItem = {
 /**
  * A pinned horizontal section, created by the orb path for stops with
  * `data-orb-mode="horizontal"` (desktop only). While pinned, the row slides
- * left and the orb spins in its gutter beside the lane, lighting up the cards in turn.
+ * left and the orb rolls along the lane's track from one end to the other.
  */
 export type OrbPin = {
     trigger: ScrollTrigger;
     /** Scroll positions where the pin starts and ends. */
     start: number;
     end: number;
-    /** The section's top edge on screen while pinned, in px. */
-    screenTop: number;
-    /** Centre of the `data-orb-lane` element, in px from the section's top edge. */
-    laneY: number;
     row: HTMLElement | null;
     items: OrbPinItem[];
     /** How far the row slides left over the pin, in px. */
     overflow: number;
-    /** Where the orb rolls while the row slides: the middle of the lane (or the gutter without one). */
-    entryX: number;
-    /** Largest orb that fits the lane, in px. */
-    laneRadius: number;
+};
+
+/**
+ * The track along the bottom of a `data-orb-lane`. The orb sits on it and
+ * rolls from `start` to `end` (x of its centre, document px) as the section
+ * scrolls horizontally: with the pin on desktop, by swiping the row on small screens.
+ */
+export type OrbLane = {
+    start: number;
+    end: number;
+    /** Centre y of the orb sitting on the line, document px (before the pin, for pinned sections). */
+    y: number;
+    radius: number;
+    /** The natively scrolling row, when not pinned. */
+    viewport: HTMLElement | null;
+    items: HTMLElement[];
 };
 
 /**
@@ -95,6 +103,8 @@ export type OrbStop = {
     margin: number;
     /** The line it rolls down, for `data-orb-track` stops. */
     track: OrbTrack | null;
+    /** The horizontal track it rolls along, for horizontal stops with a `data-orb-lane`. */
+    lane: OrbLane | null;
     pin: OrbPin | null;
 };
 
@@ -127,6 +137,8 @@ export type RouteSegment = {
     dy: number;
     /** Average orb radius along the segment, in px. */
     r: number;
+    /** How much slower than true rolling the orb turns here (1 = distance / radius). */
+    gear: number;
 };
 
 /** Where the orb is for a given scroll position. */
@@ -162,6 +174,12 @@ export type OrbPathStore = {
      * short catch-up lag. Sample the route with this, not window.scrollY.
      */
     scroll: () => number;
+    /**
+     * How far (px) swiping a lane's row has rolled the orb along that lane's
+     * track, for an orb at `point`. Only on small screens (pinned lanes are
+     * driven by the scroll), and only while the orb rests on the lane.
+     */
+    laneShift: (point: { x: number; y: number; r: number }) => number;
     subscribe: (listener: () => void) => () => void;
     /** Re-measure on the next frame. Called automatically on resize, refresh and DOM changes. */
     refresh: () => void;

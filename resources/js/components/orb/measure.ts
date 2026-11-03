@@ -8,6 +8,7 @@ import type {
     OrbPin,
     OrbSide,
     OrbStop,
+    OrbLane,
     OrbTrack,
     OrbVia,
 } from './types';
@@ -339,34 +340,13 @@ function measureTrack(
     };
 }
 
-function measurePin(
-    element: HTMLElement,
-    trigger: ScrollTrigger,
-    bounds: DocRect,
-    side: OrbSide,
-    viewportWidth: number,
-): OrbPin {
-    const section = (trigger.pin as HTMLElement | undefined) ?? element;
-    const sectionRect = section.getBoundingClientRect();
-    const sectionTop = sectionRect.top + window.scrollY + pinShift(trigger);
-
+function measurePin(element: HTMLElement, trigger: ScrollTrigger): OrbPin {
     const row = element.querySelector<HTMLElement>(SELECTORS.row);
     const viewport =
         element.querySelector<HTMLElement>(SELECTORS.viewport) ??
         row?.parentElement ??
         null;
     const rowOffset = row ? Number(gsap.getProperty(row, 'x')) || 0 : 0;
-
-    const lane = element.querySelector<HTMLElement>(SELECTORS.lane);
-    const laneRect = lane?.getBoundingClientRect();
-    // The orb rolls at the middle of the lane, sized to its height.
-    const laneX = laneRect
-        ? laneRect.left + laneRect.width / 2 + window.scrollX
-        : null;
-    // Without a lane, roll along the bottom edge of the content.
-    const laneY = laneRect
-        ? laneRect.top + laneRect.height / 2 - sectionRect.top
-        : bounds.bottom - sectionTop;
 
     const items = Array.from(
         element.querySelectorAll<HTMLElement>(SELECTORS.item),
@@ -384,16 +364,45 @@ function measurePin(
         trigger,
         start: trigger.start,
         end: trigger.end,
-        screenTop: sectionTop - trigger.start,
-        laneY,
         row,
         items,
         overflow:
             row && viewport
                 ? Math.max(0, row.scrollWidth - viewport.clientWidth)
                 : 0,
-        entryX: laneX ?? gutterCenter(bounds, side, viewportWidth),
-        laneRadius: laneRect ? laneRect.height / 2 - 4 : Infinity,
+    };
+}
+
+/**
+ * The track line of a `[data-orb-lane]`, drawn along the lane's bottom edge:
+ * the orb sits on it, sized to the lane's height, and rolls from its left
+ * end to its right end. Document px; `shiftY` moves a pinned section back to
+ * where it sits before the pin.
+ */
+function measureLane(
+    element: HTMLElement,
+    maxRadius: number,
+    shiftY: number,
+): OrbLane | null {
+    const lane = element.querySelector<HTMLElement>(SELECTORS.lane);
+    const rect = lane?.getBoundingClientRect();
+
+    if (!lane || !rect || rect.width === 0) {
+        return null;
+    }
+
+    const radius = Math.max(4, Math.min(rect.height / 2 - 4, maxRadius));
+    const left = rect.left + window.scrollX;
+
+    return {
+        start: left + radius,
+        end: left + rect.width - radius,
+        y: rect.bottom + shiftY - radius - 0.5,
+        radius,
+        viewport: element.querySelector<HTMLElement>(SELECTORS.viewport),
+        items: Array.from(
+            element.querySelectorAll<HTMLElement>(SELECTORS.item),
+        ),
     };
 }
 
@@ -479,11 +488,17 @@ export function measureOrbLayout(
     const stops: OrbStop[] = measured.map(
         ({ element, mode, side, bounds }, index) => {
             const trigger = compact ? undefined : pins.get(element);
-            const pin = trigger
-                ? measurePin(element, trigger, bounds, side, viewport.width)
-                : null;
+            const pin = trigger ? measurePin(element, trigger) : null;
             const slot = slots[index];
             const track = slot ? null : measureTrack(element, radius);
+            const lane =
+                mode === 'horizontal'
+                    ? measureLane(
+                          element,
+                          radius,
+                          window.scrollY + pinShift(pins.get(element)),
+                      )
+                    : null;
             const common = {
                 id: element.dataset.orbStop || `stop-${index}`,
                 index,
@@ -493,6 +508,9 @@ export function measureOrbLayout(
                 bounds,
                 via: readVia(element),
                 margin: viewport.width - bounds.right,
+                pin: null,
+                lane: null,
+                track: null,
             };
 
             if (slot) {
@@ -501,8 +519,6 @@ export function measureOrbLayout(
                     anchor: slot.anchor,
                     radius: slot.radius,
                     letter: true,
-                    pin: null,
-                    track: null,
                 };
             }
 
@@ -512,30 +528,34 @@ export function measureOrbLayout(
                     anchor: track.track.top,
                     radius: track.radius,
                     letter: false,
-                    pin: null,
                     track: track.track,
+                };
+            }
+
+            if (lane) {
+                return {
+                    ...common,
+                    anchor: { x: lane.start, y: lane.y },
+                    radius: lane.radius,
+                    letter: false,
+                    pin,
+                    lane,
                 };
             }
 
             return {
                 ...common,
-                anchor: pin
-                    ? {
-                          x: pin.entryX,
-                          y: pin.screenTop + pin.start + pin.laneY,
-                      }
-                    : resolveAnchor(
-                          element,
-                          bounds,
-                          side,
-                          radius,
-                          compact,
-                          viewport.width,
-                      ),
-                radius: pin ? Math.min(pin.laneRadius, radius) : radius,
+                anchor: resolveAnchor(
+                    element,
+                    bounds,
+                    side,
+                    radius,
+                    compact,
+                    viewport.width,
+                ),
+                radius,
                 letter: false,
                 pin,
-                track: null,
             };
         },
     );

@@ -31,11 +31,12 @@ const SHADOW_OPACITY = 0.18;
 const MAX_STEP = 0.1;
 
 /**
- * The most the orb's visible rotation can turn, in radians per second
- * (about one turn a second). On a fast scroll it trails the rolling a
- * little and catches up when the scroll stops.
+ * The visible spin follows the rolled distance with a little damping, so it
+ * eases to a stop when the scroll stops, and never trails by more than half
+ * a turn (so it doesn't keep spinning to catch up after a fast scroll).
  */
-const MAX_SPIN_SPEED = 6;
+const SPIN_DAMPING = 12;
+const MAX_SPIN_LAG_TURNS = 0.5;
 
 /** Breathing: one slow breath every 6s at rest, a quick one every 2s while busy (moving or hovered). */
 const BREATH_REST = 6;
@@ -124,7 +125,10 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
         view: new Vector3(0, 0, 1),
         // Where rolling and swirl put the orb, and what is shown (rate-limited towards it).
         target: new Quaternion(),
-        shown: null as Quaternion | null,
+        // The rolled distance the visible spin is showing (damped towards the route's).
+        rolled: null as number | null,
+        laneTurn: new Quaternion(),
+        laneAxis: new Vector3(0, 1, 0),
     });
 
     useFrame(({ size, viewport }, frameDelta) => {
@@ -146,6 +150,9 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
         const route = path.route();
         // The lagged scroll, so the orb catches up with the page instead of being glued to it.
         const point = route.sample(path.scroll(), state.sample);
+        // Swiping a lane's row on small screens rolls the orb along its track.
+        const laneShift = path.laneShift(point);
+        point.x += laneShift;
         const visible = motion.visible && path.get().stops.length > 0;
         group.visible = visible;
         floor.visible = visible;
@@ -312,25 +319,48 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
             state.busy * (0.5 - 0.5 * Math.cos(state.glow * Math.PI * 2)),
         );
 
-        // Roll, then swirl about the view axis: where the orb should face.
-        state.orientation.table.at(point, state.target);
+        // Roll: ease the shown distance towards the route's, never lagging more than half a turn.
+        const maxLag =
+            Math.PI *
+            Math.max(radius, path.get().radius) *
+            MAX_SPIN_LAG_TURNS *
+            2;
+        const damped =
+            state.rolled === null
+                ? point.distance
+                : MathUtils.damp(
+                      state.rolled,
+                      point.distance,
+                      SPIN_DAMPING,
+                      delta,
+                  );
+        state.rolled = MathUtils.clamp(
+            damped,
+            point.distance - maxLag,
+            point.distance + maxLag,
+        );
+        state.orientation.table.at(state.rolled, state.target);
+
+        // Swiping a lane on small screens rolls the orb along it, truly (distance / radius).
+        if (laneShift !== 0) {
+            state.target.premultiply(
+                state.laneTurn.setFromAxisAngle(
+                    state.laneAxis,
+                    laneShift / radius,
+                ),
+            );
+        }
+
+        // Then swirl about the view axis.
         state.target.premultiply(
             state.spin.setFromAxisAngle(state.view, state.swirl),
         );
+        roll.current.quaternion.copy(state.target);
 
-        // Turn towards it at a calm, capped speed, so fast scrolls never strobe.
-        if (!state.shown) {
-            state.shown = state.target.clone();
-
-            // `?orb-debug` (see OrbStage): expose the shown rotation for inspection.
-            if ('__orb' in window) {
-                Object.assign(window, { __orbRotation: state.shown });
-            }
-        } else {
-            state.shown.rotateTowards(state.target, MAX_SPIN_SPEED * delta);
+        // `?orb-debug` (see OrbStage): expose the rotation for inspection.
+        if ('__orb' in window && !('__orbRotation' in window)) {
+            Object.assign(window, { __orbRotation: state.target });
         }
-
-        roll.current.quaternion.copy(state.shown);
 
         // Then tilt towards the pointer.
         if (pull > 0) {
