@@ -41,8 +41,8 @@ function farthestCorner(x: number, y: number, w: number, h: number) {
 
 /**
  * The drop intro: the orb falls from above the viewport onto the first stop,
- * squashes, bounces twice and settles. The first impact sends a ripple that
- * reveals the hero text. Any scroll input skips straight to the end state.
+ * squashes, bounces twice and settles. The first impact reveals the hero
+ * text from the point of contact. Any scroll input skips straight to the end state.
  *
  * Everything is keyframed on one timeline, so skipping is just `progress(1)`.
  */
@@ -63,7 +63,7 @@ export function useOrbIntro({ path, motion, ready, enabled }: OrbIntroOptions) {
 
         const skipEarly = () => {
             skipped.current = true;
-            motion.visible = true;
+            motion.offsetY = 0;
             clearIntroClasses();
         };
         window.addEventListener('wheel', skipEarly, {
@@ -92,7 +92,7 @@ export function useOrbIntro({ path, motion, ready, enabled }: OrbIntroOptions) {
             const hero = layout.stops[0];
 
             if (!hero || skipped.current || window.scrollY > 0) {
-                motion.visible = true;
+                motion.offsetY = 0;
                 clearIntroClasses();
 
                 return;
@@ -107,7 +107,6 @@ export function useOrbIntro({ path, motion, ready, enabled }: OrbIntroOptions) {
                 target !== null && getComputedStyle(target).clipPath !== 'none';
 
             document.documentElement.classList.add(INTRO_RUNNING_CLASS);
-            motion.visible = true;
 
             const finish = () => {
                 clearIntroClasses();
@@ -126,17 +125,13 @@ export function useOrbIntro({ path, motion, ready, enabled }: OrbIntroOptions) {
                 { offsetY: 0, squash: 1.12, duration: 0.75, ease: 'power2.in' },
             );
 
-            // First impact: squash, ripple, reveal, then rebound.
+            // First impact: squash, reveal, then rebound. Each bounce is placed
+            // at a fixed time after impact, so the longer reveal tween can't
+            // push the second bounce back and leave the orb sitting still.
             tl.addLabel('impact')
                 .to(
                     motion,
                     { squash: 0.68, duration: 0.07, ease: 'power2.out' },
-                    'impact',
-                )
-                .fromTo(
-                    motion,
-                    { ripple: 0 },
-                    { ripple: 1, duration: 1.4, ease: 'power1.out' },
                     'impact',
                 )
                 .to(
@@ -159,7 +154,11 @@ export function useOrbIntro({ path, motion, ready, enabled }: OrbIntroOptions) {
                     },
                     'impact+=0.05',
                 )
-                .to(motion, { offsetY: 0, duration: 0.3, ease: 'power2.in' });
+                .to(
+                    motion,
+                    { offsetY: 0, duration: 0.3, ease: 'power2.in' },
+                    'impact+=0.35',
+                );
 
             if (reveal && target) {
                 const rect = target.getBoundingClientRect();
@@ -179,8 +178,8 @@ export function useOrbIntro({ path, motion, ready, enabled }: OrbIntroOptions) {
                 );
             }
 
-            // Second, smaller bounce, then settle.
-            tl.addLabel('impact2')
+            // Second, smaller bounce the moment the first one lands, then settle.
+            tl.addLabel('impact2', 'impact+=0.65')
                 .to(
                     motion,
                     { squash: 0.85, duration: 0.06, ease: 'power2.out' },
@@ -200,17 +199,21 @@ export function useOrbIntro({ path, motion, ready, enabled }: OrbIntroOptions) {
                     },
                     'impact2+=0.03',
                 )
-                .to(motion, { offsetY: 0, duration: 0.17, ease: 'power2.in' })
-                .to(motion, {
-                    squash: 0.94,
-                    duration: 0.05,
-                    ease: 'power2.out',
-                })
-                .to(motion, {
-                    squash: 1,
-                    duration: 0.4,
-                    ease: 'elastic.out(1, 0.5)',
-                });
+                .to(
+                    motion,
+                    { offsetY: 0, duration: 0.17, ease: 'power2.in' },
+                    'impact2+=0.2',
+                )
+                .to(
+                    motion,
+                    { squash: 0.94, duration: 0.05, ease: 'power2.out' },
+                    'impact2+=0.37',
+                )
+                .to(
+                    motion,
+                    { squash: 1, duration: 0.4, ease: 'elastic.out(1, 0.5)' },
+                    'impact2+=0.42',
+                );
 
             // Skip on any scroll input.
             const skip = (event: Event) => {
@@ -243,7 +246,6 @@ export function useOrbIntro({ path, motion, ready, enabled }: OrbIntroOptions) {
                 tl.kill();
                 motion.offsetY = 0;
                 motion.squash = 1;
-                motion.ripple = 1;
                 finish();
             };
         },

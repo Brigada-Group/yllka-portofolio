@@ -279,7 +279,13 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
 
     return (
         <>
-            <mesh ref={shadow} visible={false} renderOrder={-1}>
+            {/* Never frustum-culled, so the parked orb still renders (and compiles) before the intro. */}
+            <mesh
+                ref={shadow}
+                visible={false}
+                renderOrder={-1}
+                frustumCulled={false}
+            >
                 <planeGeometry />
                 <meshBasicMaterial
                     map={textures.shadow}
@@ -294,7 +300,7 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
                 <group ref={stretch}>
                     <group ref={unstretch}>
                         <group ref={roll}>
-                            <mesh>
+                            <mesh frustumCulled={false}>
                                 <sphereGeometry
                                     args={[1, segments, segments / 2]}
                                 />
@@ -319,7 +325,7 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
                                 />
                             </mesh>
                             {/* Etched lines, just outside the glass, so the roll stays visible. */}
-                            <mesh scale={1.003}>
+                            <mesh scale={1.003} frustumCulled={false}>
                                 <sphereGeometry
                                     args={[1, segments, segments / 2]}
                                 />

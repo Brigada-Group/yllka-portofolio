@@ -1,23 +1,45 @@
 import { Environment, Lightformer } from '@react-three/drei';
-import { advance, Canvas } from '@react-three/fiber';
-import { useEffect, useState } from 'react';
+import { advance, Canvas, useFrame } from '@react-three/fiber';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { gsap } from '@/lib/gsap';
 import type { OrbMotion } from './motion';
 import Orb from './orb';
 import OrbDebug from './orb-debug';
-import OrbRipple from './orb-ripple';
 import type { OrbPathStore } from './types';
 
 type OrbCanvasProps = {
     path: OrbPathStore;
     motion: OrbMotion;
-    /** Called once the WebGL context exists and the first frame can render. */
+    /** Called once the scene has rendered a few frames, with every shader compiled. */
     onReady: () => void;
     mobile: boolean;
     reducedMotion: boolean;
     debug: boolean;
 };
+
+/** Frames to render before the scene counts as ready. */
+const WARM_UP_FRAMES = 3;
+
+/**
+ * Signals readiness after the first few frames. The orb renders parked off
+ * screen meanwhile, so shader compilation and texture uploads (which can
+ * stall a frame for a few hundred ms on slower GPUs) happen before the
+ * intro starts, not in the middle of the drop.
+ */
+function WarmUp({ onReady }: { onReady: () => void }) {
+    const frames = useRef(0);
+
+    useFrame(() => {
+        frames.current += 1;
+
+        if (frames.current === WARM_UP_FRAMES) {
+            onReady();
+        }
+    });
+
+    return null;
+}
 
 function usePageVisible(): boolean {
     const [visible, setVisible] = useState(
@@ -85,7 +107,6 @@ export default function OrbCanvas({
                 powerPreference: 'high-performance',
             }}
             camera={{ fov: 25, position: [0, 0, 20], near: 0.1, far: 100 }}
-            onCreated={onReady}
         >
             <hemisphereLight args={['#ffffff', '#a1a1aa', 0.6]} />
             <directionalLight position={[-4, 6, 8]} intensity={1.2} />
@@ -118,8 +139,8 @@ export default function OrbCanvas({
                 quality={mobile ? 'low' : 'high'}
                 interactive={!reducedMotion}
             />
-            <OrbRipple path={path} motion={motion} />
             {debug && <OrbDebug path={path} />}
+            <WarmUp onReady={onReady} />
         </Canvas>,
         document.body,
     );

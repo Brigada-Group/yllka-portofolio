@@ -6,13 +6,13 @@
  */
 let played = false;
 
-/** On <html> while the hero text waits for the ripple to reveal it. */
+/** On <html> while the hero text waits for the orb's impact to reveal it. */
 export const INTRO_PENDING_CLASS = 'orb-intro';
 
 /** On <html> once the intro is driving the reveal; cancels the CSS fallback. */
 export const INTRO_RUNNING_CLASS = 'orb-intro-running';
 
-/** The element revealed by the impact ripple. */
+/** The element revealed from the orb's point of impact. */
 export const REVEAL_SELECTOR = '[data-orb-reveal]';
 
 export function shouldPlayIntro(): boolean {

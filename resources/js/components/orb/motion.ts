@@ -8,10 +8,20 @@ export type OrbMotion = {
     offsetY: number;
     /** Vertical scale. Below 1 squashes, above 1 stretches. Volume is preserved. */
     squash: number;
-    /** Impact ripple progress from 0 to 1. Rings are hidden outside (0, 1). */
-    ripple: number;
 };
 
-export function createOrbMotion(visible: boolean): OrbMotion {
-    return { visible, offsetY: 0, squash: 1, ripple: 1 };
+/** Far above the page: where the orb waits, already rendering, until the intro drops it. */
+export const PARKED_OFFSET = -100_000;
+
+/**
+ * Initial motion state. With an intro pending, the orb is parked off screen
+ * rather than hidden, so its shaders compile and textures upload before the
+ * drop starts instead of stalling the first frames of it.
+ */
+export function createOrbMotion(introPending: boolean): OrbMotion {
+    return {
+        visible: true,
+        offsetY: introPending ? PARKED_OFFSET : 0,
+        squash: 1,
+    };
 }

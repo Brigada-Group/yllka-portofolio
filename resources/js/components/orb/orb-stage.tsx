@@ -39,12 +39,12 @@ function useIdle(skip: boolean): boolean {
 /**
  * Drop this into a page that has `data-orb-stop` sections. Renders nothing
  * on the server and until the browser is idle, then loads the canvas chunk.
- * Mark the hero text with `data-orb-reveal` for the intro ripple to reveal it.
+ * Mark the hero text with `data-orb-reveal` for the intro to reveal it on impact.
  */
 export default function OrbStage() {
     // Decided once per mount. Never true on the server.
     const [introEnabled] = useState(shouldPlayIntro);
-    const [motion] = useState(() => createOrbMotion(!introEnabled));
+    const [motion] = useState(() => createOrbMotion(introEnabled));
     const [ready, setReady] = useState(false);
     const reducedMotion = usePrefersReducedMotion();
     // Reduced motion: no pinning, and the orb stays in the hero.
@@ -66,12 +66,13 @@ export default function OrbStage() {
             return;
         }
 
-        Object.assign(window, { __orb: path });
+        Object.assign(window, { __orb: path, __orbMotion: motion });
 
         return () => {
             Reflect.deleteProperty(window, '__orb');
+            Reflect.deleteProperty(window, '__orbMotion');
         };
-    }, [debug, path]);
+    }, [debug, path, motion]);
 
     if (!path || !idle) {
         return null;
