@@ -29,7 +29,7 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
             return;
         }
 
-        const instance = new Lenis({ autoRaf: false });
+        const instance = new Lenis({ autoRaf: false, lerp: 0.08 });
         const tick = (time: number) => instance.raf(time * 1000);
 
         instance.on('scroll', () => ScrollTrigger.update());

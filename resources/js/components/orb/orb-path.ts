@@ -15,13 +15,20 @@ export const ORB_STOP_SELECTOR = SELECTORS.stop;
 const PINNED_ATTRIBUTE = 'data-orb-pinned';
 /** Set on the card the orb is currently under. */
 const ACTIVE_ATTRIBUTE = 'data-orb-active';
+/**
+ * Catch-up lag: the orb (and the pinned rows it drives) follows a damped copy
+ * of the scroll, closing about 95% of the gap in 1.2s, like ScrollTrigger's
+ * `scrub: 1.2`. Per second.
+ */
+const SCROLL_LAG = 2.5;
+
+/** Scroll position jumps larger than this many screens (restoring scroll, anchors) snap instead of easing. */
+const SNAP_SCREENS = 2;
+
 /** Scroll length of a pinned section, per card plus one, as a share of the viewport height. */
 const PIN_LENGTH_PER_ITEM = 0.55;
 
-function createPin(
-    element: HTMLElement,
-    onUpdate: (self: ScrollTrigger) => void,
-): ScrollTrigger {
+function createPin(element: HTMLElement): ScrollTrigger {
     const section = element.closest<HTMLElement>('section') ?? element;
     const itemCount = () => element.querySelectorAll(SELECTORS.item).length;
 
@@ -39,7 +46,6 @@ function createPin(
         end: () =>
             `+=${(itemCount() + 1) * window.innerHeight * PIN_LENGTH_PER_ITEM}`,
         invalidateOnRefresh: true,
-        onUpdate,
     });
 }
 
@@ -73,6 +79,7 @@ export function createOrbPath(
     let route: OrbRoute;
     let frame = 0;
     let lastHeight = 0;
+    let scroll = window.scrollY;
 
     /** Slide each pinned row and light up its cards one at a time, in order. */
     const applyPin = (stop: OrbStop, scroll: number) => {
@@ -100,8 +107,30 @@ export function createOrbPath(
         });
     };
 
-    const applyPins = (scroll = window.scrollY) => {
+    const applyPins = () => {
         layout.stops.forEach((stop) => applyPin(stop, scroll));
+    };
+
+    // Ease the lagged scroll towards the real one, once per frame (after Lenis).
+    const tick = (_time: number, deltaMs: number) => {
+        const target = window.scrollY;
+        const snap =
+            options.still ||
+            Math.abs(target - scroll) > window.innerHeight * SNAP_SCREENS;
+
+        scroll = snap
+            ? target
+            : gsap.utils.interpolate(
+                  scroll,
+                  target,
+                  1 - Math.exp(-SCROLL_LAG * (deltaMs / 1000)),
+              );
+
+        if (Math.abs(target - scroll) < 0.05) {
+            scroll = target;
+        }
+
+        applyPins();
     };
 
     /** Create or remove pins to match the layout. Returns true if anything changed. */
@@ -125,15 +154,7 @@ export function createOrbPath(
 
         wanted.forEach((element) => {
             if (!pins.has(element)) {
-                const trigger = createPin(element, (self) => {
-                    const stop = layout.stops.find(
-                        (candidate) => candidate.element === element,
-                    );
-
-                    if (stop) {
-                        applyPin(stop, self.scroll());
-                    }
-                });
+                const trigger = createPin(element);
                 pins.set(element, trigger);
                 changed = true;
             }
@@ -192,12 +213,14 @@ export function createOrbPath(
 
     window.addEventListener('resize', refresh);
     ScrollTrigger.addEventListener('refresh', refresh);
+    gsap.ticker.add(tick);
 
     measure();
 
     return {
         get: () => layout,
         route: () => route,
+        scroll: () => scroll,
         subscribe: (listener) => {
             listeners.add(listener);
 
@@ -206,6 +229,7 @@ export function createOrbPath(
         refresh,
         destroy: () => {
             cancelAnimationFrame(frame);
+            gsap.ticker.remove(tick);
             resizeObserver.disconnect();
             mutationObserver.disconnect();
             window.removeEventListener('resize', refresh);

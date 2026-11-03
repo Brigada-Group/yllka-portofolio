@@ -13,6 +13,8 @@ const ARRIVAL_FOCUS = 0.4;
 const CORNER_RADIUS = 96;
 const COMPACT_CORNER_RADIUS = 24;
 const CORNER_STEPS = 8;
+/** How far the orb overshoots a stop before settling back onto it, in px. */
+const ARRIVAL_OVERSHOOT = 10;
 
 /** One piece of the route, travelled while the scroll moves from s0 to s1. */
 type Leg = {
@@ -33,6 +35,8 @@ type Leg = {
      * far in place, keeping pace with a sliding row. 0 for travel legs.
      */
     spin: number;
+    /** Overshoot strength for arriving at the end of the leg (see `overshoot`). 0 for none. */
+    settle: number;
     /** Distance rolled before this leg, and index of its first segment. */
     d0: number;
     segment0: number;
@@ -45,6 +49,40 @@ const clamp = (value: number, min: number, max: number) =>
     Math.min(max, Math.max(min, value));
 
 const smoothstep = (t: number) => t * t * (3 - 2 * t);
+
+/**
+ * Ease in and out, overshooting the end by a little before settling back:
+ * smoothstep plus c·t³(1−t)². Still at both ends, never moves backwards at
+ * the start, and overshoots for c > 3.
+ */
+const overshoot = (t: number, c: number) =>
+    smoothstep(t) + c * t ** 3 * (1 - t) ** 2;
+
+/** The c that makes `overshoot` pass the end by `fraction` of the leg. */
+function overshootFor(fraction: number): number {
+    const peak = (c: number) => {
+        let max = 0;
+
+        for (let i = 0; i <= 100; i++) {
+            max = Math.max(max, overshoot(0.75 + i * 0.0025, c));
+        }
+
+        return max - 1;
+    };
+    let [lo, hi] = [3, 8];
+
+    for (let i = 0; i < 20; i++) {
+        const mid = (lo + hi) / 2;
+
+        if (peak(mid) < fraction) {
+            lo = mid;
+        } else {
+            hi = mid;
+        }
+    }
+
+    return lo;
+}
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
@@ -219,6 +257,7 @@ export function buildOrbRoute(layout: OrbLayout, still: boolean): OrbRoute {
                 s1: after(pin.start),
                 pinned: false,
                 spin: 0,
+                settle: settleFor(travel),
                 points: travel,
                 cum: cumulative(travel),
                 keys: [
@@ -234,6 +273,7 @@ export function buildOrbRoute(layout: OrbLayout, still: boolean): OrbRoute {
                 s1: Math.max(pin.end, s0 + 1),
                 pinned: true,
                 ...spin,
+                settle: 0,
                 cum: [0],
                 keys: [{ index: 0, t: 0 }],
             });
@@ -258,6 +298,7 @@ export function buildOrbRoute(layout: OrbLayout, still: boolean): OrbRoute {
             s1,
             pinned: false,
             spin: 0,
+            settle: settleFor(points),
             points,
             cum: cumulative(points),
             keys: [
@@ -269,6 +310,15 @@ export function buildOrbRoute(layout: OrbLayout, still: boolean): OrbRoute {
     }
 
     return createRoute(rest, legs);
+}
+
+/** Overshoot strength for a leg, so it passes its stop by ARRIVAL_OVERSHOOT px whatever its length. */
+function settleFor(points: RoutePoint[]): number {
+    const length = cumulative(points).at(-1) ?? 0;
+
+    return length > ARRIVAL_OVERSHOOT * 4
+        ? overshootFor(ARRIVAL_OVERSHOOT / length)
+        : 0;
 }
 
 function staticRoute(point: RoutePoint): OrbRoute {
@@ -352,15 +402,17 @@ function createRoute(
         }
 
         const span = leg.cum[hi] - leg.cum[lo];
+        // Past the end (overshooting), this extends the last segment.
         const point = towards(
             leg.points[lo],
             leg.points[hi],
             span > 0 ? (along - leg.cum[lo]) / span : 0,
         );
+        const [a, b] = [leg.points[lo], leg.points[hi]];
 
         out.x = point.x;
         out.y = leg.pinned ? point.y + scroll : point.y;
-        out.r = point.r;
+        out.r = clamp(point.r, Math.min(a.r, b.r), Math.max(a.r, b.r));
         out.distance = leg.d0 + along;
         out.segment = leg.points.length > 1 ? leg.segment0 + lo : -1;
 
@@ -406,9 +458,12 @@ function createRoute(
             }
 
             const [from, to] = [leg.keys[k], leg.keys[k + 1]];
-            const local = smoothstep(
-                clamp((t - from.t) / (to.t - from.t || 1), 0, 1),
-            );
+            const share = clamp((t - from.t) / (to.t - from.t || 1), 0, 1);
+            // Overshoot only into the leg's final stop.
+            const local =
+                leg.settle > 0 && k === leg.keys.length - 2
+                    ? overshoot(share, leg.settle)
+                    : smoothstep(share);
             const along = lerp(leg.cum[from.index], leg.cum[to.index], local);
 
             return placeAt(leg, along, scroll, out);

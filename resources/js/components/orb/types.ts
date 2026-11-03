@@ -134,6 +134,11 @@ export type OrbPathOptions = {
 export type OrbPathStore = {
     get: () => OrbLayout;
     route: () => OrbRoute;
+    /**
+     * The scroll position the orb follows: the real scroll, eased with a
+     * short catch-up lag. Sample the route with this, not window.scrollY.
+     */
+    scroll: () => number;
     subscribe: (listener: () => void) => () => void;
     /** Re-measure on the next frame. Called automatically on resize, refresh and DOM changes. */
     refresh: () => void;
