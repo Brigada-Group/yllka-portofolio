@@ -107,6 +107,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Admin User
+    |--------------------------------------------------------------------------
+    |
+    | Credentials for the Filament admin user created by AdminUserSeeder.
+    | There is no public registration, so this is the only account.
+    |
+    */
+
+    'admin' => [
+        'name' => env('ADMIN_NAME', 'Admin'),
+        'email' => env('ADMIN_EMAIL'),
+        'password' => env('ADMIN_PASSWORD'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Maintenance Mode Driver
     |--------------------------------------------------------------------------
     |

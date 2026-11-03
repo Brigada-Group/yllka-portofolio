@@ -1,18 +1,13 @@
-import type { Auth } from '@/types/auth';
-
-declare module 'react' {
-    interface InputHTMLAttributes<T> {
-        passwordrules?: string;
-    }
-}
+import type { SiteSettings } from '@/types/models';
 
 declare module '@inertiajs/core' {
     export interface InertiaConfig {
         sharedPageProps: {
-            name: string;
-            auth: Auth;
-            sidebarOpen: boolean;
+            site: SiteSettings;
             [key: string]: unknown;
+        };
+        flashDataType: {
+            success?: string;
         };
     }
 }

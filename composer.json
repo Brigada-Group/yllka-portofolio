@@ -1,18 +1,17 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/react-starter-kit",
+    "name": "portfolio/portfolio",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "Personal portfolio: Laravel, Inertia React and Filament.",
     "keywords": [
-        "laravel",
-        "framework"
+        "portfolio"
     ],
     "license": "MIT",
     "require": {
-        "php": "^8.3",
+        "php": "^8.4",
+        "filament/filament": "^5.11",
+        "filament/spatie-laravel-settings-plugin": "^5.11",
         "inertiajs/inertia-laravel": "^3.0",
-        "laravel/chisel": "^0.1.0",
-        "laravel/fortify": "^1.37.2",
         "laravel/framework": "^13.17",
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.14"
@@ -26,7 +25,8 @@
         "laravel/sail": "^1.53",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.9.3",
-        "phpunit/phpunit": "^12.5.23"
+        "pestphp/pest": "^5.3",
+        "pestphp/pest-plugin-laravel": "^5.0"
     },
     "autoload": {
         "psr-4": {
@@ -76,7 +76,8 @@
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
-            "@php artisan package:discover --ansi"
+            "@php artisan package:discover --ansi",
+            "@php artisan filament:upgrade"
         ],
         "post-update-cmd": [
             "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
@@ -97,8 +98,7 @@
         "laravel": {
             "dont-discover": [],
             "installer": {
-                "post-create-project": [
-                ]
+                "post-create-project": []
             }
         }
     },
