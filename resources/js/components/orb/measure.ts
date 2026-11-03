@@ -18,15 +18,19 @@ export const SELECTORS = {
     row: '[data-orb-row]',
     /** A card the orb presents. */
     item: '[data-orb-item]',
-    /** The empty lane the orb rolls along while a section is pinned. */
+    /** The empty lane beside which the orb waits while a section is pinned. */
     lane: '[data-orb-lane]',
+    /** Text the orb rests beside (on the stop's side) instead of out in the gutter. */
+    beside: '[data-orb-beside]',
 } as const;
 
 /** Space kept between the orb and content or the viewport edge. */
 const MARGIN = 16;
-const MIN_RADIUS = 24;
-const MAX_RADIUS = 60;
-const COMPACT_RADIUS = 22;
+const MIN_RADIUS = 18;
+const MAX_RADIUS = 36;
+const COMPACT_RADIUS = 18;
+/** Space between text and an orb resting beside it. */
+const BESIDE_GAP = 32;
 
 const clamp = (value: number, min: number, max: number) =>
     Math.min(max, Math.max(min, value));
@@ -102,12 +106,19 @@ export function gutterCenter(
  * covers text.
  */
 function resolveAnchor(
+    element: HTMLElement,
     bounds: DocRect,
     side: OrbSide,
     radius: number,
     compact: boolean,
     viewportWidth: number,
 ): DocPoint {
+    const beside = besideText(element, side, radius, viewportWidth);
+
+    if (beside) {
+        return beside;
+    }
+
     if (compact) {
         return {
             x:
@@ -122,6 +133,68 @@ function resolveAnchor(
         x: gutterCenter(bounds, side, viewportWidth),
         y: bounds.top + radius,
     };
+}
+
+/**
+ * A resting point just past the end of the text in `[data-orb-beside]`,
+ * vertically centred on it. Null when there is no such element or no room.
+ */
+function besideText(
+    element: HTMLElement,
+    side: OrbSide,
+    radius: number,
+    viewportWidth: number,
+): DocPoint | null {
+    const target = element.querySelector<HTMLElement>(SELECTORS.beside);
+
+    if (!target) {
+        return null;
+    }
+
+    // Union of the text itself: block children span the full width, their text doesn't.
+    const box = {
+        top: Infinity,
+        bottom: -Infinity,
+        left: Infinity,
+        right: -Infinity,
+    };
+    const walker = document.createTreeWalker(target, NodeFilter.SHOW_TEXT);
+    const range = document.createRange();
+
+    while (walker.nextNode()) {
+        if (!walker.currentNode.textContent?.trim()) {
+            continue;
+        }
+
+        range.selectNodeContents(walker.currentNode);
+
+        for (const rect of range.getClientRects()) {
+            box.top = Math.min(box.top, rect.top);
+            box.bottom = Math.max(box.bottom, rect.bottom);
+            box.left = Math.min(box.left, rect.left);
+            box.right = Math.max(box.right, rect.right);
+        }
+    }
+
+    if (box.top === Infinity) {
+        return null;
+    }
+
+    const x =
+        side === 'right'
+            ? box.right + BESIDE_GAP + radius
+            : box.left - BESIDE_GAP - radius;
+    const fits =
+        side === 'right'
+            ? x + radius + MARGIN <= viewportWidth
+            : x - radius - MARGIN >= 0;
+
+    return fits
+        ? {
+              x: x + window.scrollX,
+              y: (box.top + box.bottom) / 2 + window.scrollY,
+          }
+        : null;
 }
 
 function measurePin(
@@ -174,11 +247,6 @@ function measurePin(
                 ? Math.max(0, row.scrollWidth - viewport.clientWidth)
                 : 0,
         entryX: gutterCenter(bounds, side, viewportWidth),
-        exitX: gutterCenter(
-            bounds,
-            side === 'left' ? 'right' : 'left',
-            viewportWidth,
-        ),
     };
 }
 
@@ -265,6 +333,7 @@ export function measureOrbLayout(
                           y: pin.screenTop + pin.start + pin.laneY,
                       }
                     : resolveAnchor(
+                          element,
                           bounds,
                           side,
                           radius,

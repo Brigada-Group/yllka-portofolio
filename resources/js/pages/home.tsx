@@ -67,7 +67,7 @@ export default function Home({
                 side="right"
                 className="flex min-h-[calc(100svh-5rem)] items-center"
             >
-                <div data-orb-reveal>
+                <div data-orb-reveal data-orb-beside>
                     <h1 id="hero-title">{site.name}</h1>
                     <p>{site.headline}</p>
                 </div>
@@ -106,7 +106,7 @@ export default function Home({
             <Section
                 id="skills"
                 mode="horizontal"
-                side="right"
+                side="left"
                 className="py-24 md:py-32"
             >
                 <h2 id="skills-title">Skills</h2>
@@ -123,7 +123,7 @@ export default function Home({
                 </div>
             </Section>
 
-            <Section id="contact" side="right" className="py-24 md:py-32">
+            <Section id="contact" side="left" className="py-24 md:py-32">
                 <h2 id="contact-title">Contact</h2>
                 <ContactForm className="mt-6 max-w-lg" />
             </Section>

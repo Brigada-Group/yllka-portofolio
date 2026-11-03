@@ -30,7 +30,7 @@ export type OrbPinItem = {
 /**
  * A pinned horizontal section, created by the orb path for stops with
  * `data-orb-mode="horizontal"` (desktop only). While pinned, the row slides
- * left and the orb rolls along the lane below it.
+ * left and the orb spins in its gutter beside the lane, lighting up the cards in turn.
  */
 export type OrbPin = {
     trigger: ScrollTrigger;
@@ -45,9 +45,8 @@ export type OrbPin = {
     items: OrbPinItem[];
     /** How far the row slides left over the pin, in px. */
     overflow: number;
-    /** Gutter x where the orb enters and leaves the lane. */
+    /** Gutter x where the orb waits while the row slides. */
     entryX: number;
-    exitX: number;
 };
 
 /**
@@ -68,8 +67,9 @@ export type OrbStop = {
      */
     bounds: DocRect;
     /**
-     * Where the orb rests for this stop: centred in the gutter, or above the
-     * content when compact. For a pinned stop, the lane entry in the gutter.
+     * Where the orb rests for this stop: beside the text marked
+     * `data-orb-beside` if there is room, else centred in the gutter, or above
+     * the content when compact. For a pinned stop, in the gutter beside the lane.
      */
     anchor: DocPoint;
     pin: OrbPin | null;

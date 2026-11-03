@@ -153,13 +153,13 @@ export function useOrbIntro({ path, motion, ready, enabled }: OrbIntroOptions) {
                 .to(
                     motion,
                     {
-                        offsetY: -fall * 0.22,
-                        duration: 0.35,
+                        offsetY: -fall * 0.16,
+                        duration: 0.3,
                         ease: 'power2.out',
                     },
                     'impact+=0.05',
                 )
-                .to(motion, { offsetY: 0, duration: 0.35, ease: 'power2.in' });
+                .to(motion, { offsetY: 0, duration: 0.3, ease: 'power2.in' });
 
             if (reveal && target) {
                 const rect = target.getBoundingClientRect();
@@ -194,7 +194,7 @@ export function useOrbIntro({ path, motion, ready, enabled }: OrbIntroOptions) {
                 .to(
                     motion,
                     {
-                        offsetY: -fall * 0.05,
+                        offsetY: -fall * 0.04,
                         duration: 0.17,
                         ease: 'power2.out',
                     },

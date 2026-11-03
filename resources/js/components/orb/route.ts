@@ -28,6 +28,11 @@ type Leg = {
      * the leg's scroll at which it reaches each. The orb slows down at each key.
      */
     keys: { index: number; t: number }[];
+    /**
+     * Spin legs hold the orb still at their first point while it rolls this
+     * far in place, keeping pace with a sliding row. 0 for travel legs.
+     */
+    spin: number;
     /** Distance rolled before this leg, and index of its first segment. */
     d0: number;
     segment0: number;
@@ -147,47 +152,30 @@ function edgeLeg(
 }
 
 /**
- * Pinned horizontal section: the orb enters the lane from one gutter,
- * pauses under each card in turn while the row slides left, then leaves
- * through the opposite gutter. Points are in screen space.
+ * Pinned horizontal section: the orb waits in its gutter beside the row and
+ * spins as the row slides past, like a wheel on a conveyor. It rolls as far
+ * as the row slides. Its point is in screen space, so it stays put while pinned.
  */
-function pinnedLeg(
-    stop: OrbStop,
-    radius: number,
-): Pick<Leg, 'points' | 'keys'> {
+function spinLeg(stop: OrbStop, radius: number) {
     const pin = stop.pin!;
-    const y = pin.screenTop + pin.laneY;
-    const order = stop.side === 'left' ? pin.items : [...pin.items].reverse();
-    const count = order.length;
-
-    // At share t of the pin the row has slid t × overflow, so card k is
-    // under the orb when the orb is at its centre minus that offset.
-    const keys = [
-        { x: pin.entryX, t: 0 },
-        ...order.map((item, k) => {
-            const t = (k + 1) / (count + 1);
-
-            return { x: item.center - t * pin.overflow, t };
-        }),
-        { x: pin.exitX, t: 1 },
-    ];
 
     return {
-        points: keys.map(({ x }) => ({ x, y, r: radius })),
-        keys: keys.map(({ t }, index) => ({ index, t })),
+        points: [{ x: pin.entryX, y: pin.screenTop + pin.laneY, r: radius }],
+        // Spin at least half a turn, even when the row barely moves.
+        spin: Math.max(pin.overflow, Math.PI * radius),
     };
 }
 
 /** How far the row in a pinned section has slid at a scroll position. */
 export function pinnedRowOffset(stop: OrbStop, scroll: number): number {
-    const pin = stop.pin!;
-    const progress = clamp(
-        (scroll - pin.start) / (pin.end - pin.start || 1),
-        0,
-        1,
-    );
+    return -pinProgress(stop, scroll) * stop.pin!.overflow;
+}
 
-    return -progress * pin.overflow;
+/** How far through a pinned section the scroll is, from 0 to 1. */
+export function pinProgress(stop: OrbStop, scroll: number): number {
+    const pin = stop.pin!;
+
+    return clamp((scroll - pin.start) / (pin.end - pin.start || 1), 0, 1);
 }
 
 /**
@@ -230,6 +218,7 @@ export function buildOrbRoute(layout: OrbLayout, still: boolean): OrbRoute {
                 s0: cursor.scroll,
                 s1: after(pin.start),
                 pinned: false,
+                spin: 0,
                 points: travel,
                 cum: cumulative(travel),
                 keys: [
@@ -238,20 +227,21 @@ export function buildOrbRoute(layout: OrbLayout, still: boolean): OrbRoute {
                 ],
             });
 
-            const pinned = pinnedLeg(stop, radius);
+            const spin = spinLeg(stop, radius);
             const s0 = after(pin.start);
             legs.push({
                 s0,
                 s1: Math.max(pin.end, s0 + 1),
                 pinned: true,
-                ...pinned,
-                cum: cumulative(pinned.points),
+                ...spin,
+                cum: [0],
+                keys: [{ index: 0, t: 0 }],
             });
 
             // After the pin, the section has moved down by the pin's length.
             const shift = pin.end - pin.start;
             cursor = {
-                point: { x: pin.exitX, y: stop.anchor.y + shift, r: radius },
+                point: { x: pin.entryX, y: stop.anchor.y + shift, r: radius },
                 scroll: Math.max(pin.end, s0 + 1),
                 bottom: stop.bounds.bottom + shift,
             };
@@ -267,6 +257,7 @@ export function buildOrbRoute(layout: OrbLayout, still: boolean): OrbRoute {
             s0: cursor.scroll,
             s1,
             pinned: false,
+            spin: 0,
             points,
             cum: cumulative(points),
             keys: [
@@ -325,6 +316,18 @@ function createRoute(
             distance += length;
         }
 
+        if (leg.spin > 0) {
+            // Rolling in place, as if travelling right over the row sliding left.
+            segments.push({
+                d0: distance,
+                length: leg.spin,
+                dx: 1,
+                dy: 0,
+                r: leg.points[0].r,
+            });
+            distance += leg.spin;
+        }
+
         return built;
     });
 
@@ -381,6 +384,19 @@ function createRoute(
                 legs.find((candidate) => scroll < candidate.s1) ??
                 legs[legs.length - 1];
             const t = clamp((scroll - leg.s0) / (leg.s1 - leg.s0), 0, 1);
+
+            if (leg.spin > 0) {
+                // Linear, to keep pace with the row, which slides linearly.
+                const point = leg.points[0];
+
+                return Object.assign(out, {
+                    x: point.x,
+                    y: leg.pinned ? point.y + scroll : point.y,
+                    r: point.r,
+                    distance: leg.d0 + t * leg.spin,
+                    segment: leg.segment0,
+                });
+            }
 
             // Ease between the two keyframes around t.
             let k = 0;

@@ -1,12 +1,11 @@
 import { gsap, ScrollTrigger } from '@/lib/gsap';
 import { measureOrbLayout, SELECTORS } from './measure';
-import { buildOrbRoute, pinnedRowOffset } from './route';
+import { buildOrbRoute, pinnedRowOffset, pinProgress } from './route';
 import type {
     OrbLayout,
     OrbPathOptions,
     OrbPathStore,
     OrbRoute,
-    OrbSample,
     OrbStop,
 } from './types';
 
@@ -70,13 +69,12 @@ export function createOrbPath(
 ): OrbPathStore {
     const pins = new Map<HTMLElement, ScrollTrigger>();
     const listeners = new Set<() => void>();
-    const sample: OrbSample = { x: 0, y: 0, r: 0, distance: 0, segment: -1 };
     let layout: OrbLayout;
     let route: OrbRoute;
     let frame = 0;
     let lastHeight = 0;
 
-    /** Slide each pinned row and light up the card the orb is under. */
+    /** Slide each pinned row and light up its cards one at a time, in order. */
     const applyPin = (stop: OrbStop, scroll: number) => {
         const pin = stop.pin;
 
@@ -84,19 +82,22 @@ export function createOrbPath(
             return;
         }
 
-        const offset = pinnedRowOffset(stop, scroll);
         const pinned = scroll > pin.start && scroll < pin.end;
-        const orbX = route.sample(scroll, sample).x;
+        const active = Math.min(
+            pin.items.length - 1,
+            Math.floor(pinProgress(stop, scroll) * pin.items.length),
+        );
 
         if (pin.row) {
-            gsap.set(pin.row, { x: offset });
+            gsap.set(pin.row, { x: pinnedRowOffset(stop, scroll) });
         }
 
-        for (const item of pin.items) {
-            const under =
-                Math.abs(orbX - (item.center + offset)) < item.width / 2;
-            item.element.toggleAttribute(ACTIVE_ATTRIBUTE, pinned && under);
-        }
+        pin.items.forEach((item, index) => {
+            item.element.toggleAttribute(
+                ACTIVE_ATTRIBUTE,
+                pinned && index === active,
+            );
+        });
     };
 
     const applyPins = (scroll = window.scrollY) => {
