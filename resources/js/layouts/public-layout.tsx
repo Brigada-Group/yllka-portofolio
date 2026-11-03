@@ -18,13 +18,16 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
 
     return (
         <SmoothScroll>
+            <div aria-hidden className="grain" />
             {/* Content stacks above the fixed orb canvas (z-0). */}
             <div className="relative z-10 flex min-h-screen flex-col">
                 <header>
-                    <Container className="flex items-center justify-between py-6">
-                        <Link href={home()}>{site.name}</Link>
+                    <div className="flex items-center justify-between gap-6 px-4 py-6 md:px-8">
+                        <Link href={home()} className="whitespace-nowrap">
+                            {site.name}
+                        </Link>
                         <nav>
-                            <ul className="flex gap-4">
+                            <ul className="flex gap-3 text-sm md:gap-4 md:text-base">
                                 {navItems.map((item) => (
                                     <li key={item.label}>
                                         <Link href={item.href}>
@@ -34,7 +37,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                                 ))}
                             </ul>
                         </nav>
-                    </Container>
+                    </div>
                 </header>
 
                 <main className="flex-1">{children}</main>

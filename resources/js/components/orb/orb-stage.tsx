@@ -37,6 +37,28 @@ function useIdle(skip: boolean): boolean {
 }
 
 /**
+ * Resolves once web fonts have loaded (or after `timeout` ms), so text
+ * positions the orb depends on have settled.
+ */
+function useFontsReady(timeout = 2000): boolean {
+    const [ready, setReady] = useState(false);
+
+    useEffect(() => {
+        let cancelled = false;
+        const done = () => !cancelled && setReady(true);
+        const timer = setTimeout(done, timeout);
+        void document.fonts?.ready.then(done);
+
+        return () => {
+            cancelled = true;
+            clearTimeout(timer);
+        };
+    }, [timeout]);
+
+    return ready;
+}
+
+/**
  * Drop this into a page that has `data-orb-stop` sections. Renders nothing
  * on the server and until the browser is idle, then loads the canvas chunk.
  * Mark the hero text with `data-orb-reveal` for the intro to reveal it on impact.
@@ -58,7 +80,15 @@ export default function OrbStage() {
             new URLSearchParams(window.location.search).has('orb-debug'),
     );
 
-    useOrbIntro({ path, motion, ready, enabled: introEnabled });
+    const fontsReady = useFontsReady();
+
+    // Drop once the scene is warmed up and the headline's letter gap has its final position.
+    useOrbIntro({
+        path,
+        motion,
+        ready: ready && fontsReady,
+        enabled: introEnabled,
+    });
 
     // `?orb-debug`: expose the path for inspection in the console.
     useEffect(() => {

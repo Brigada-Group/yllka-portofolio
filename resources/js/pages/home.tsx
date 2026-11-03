@@ -2,6 +2,7 @@ import { Link, usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import ContactForm from '@/components/contact-form';
 import ExperienceTimeline from '@/components/experience-timeline';
+import Hero from '@/components/hero';
 import { OrbStage } from '@/components/orb';
 import type { OrbMode, OrbSide } from '@/components/orb';
 import ProjectCard from '@/components/project-card';
@@ -62,16 +63,7 @@ export default function Home({
             <Seo description={site.headline} />
             <OrbStage />
 
-            <Section
-                id="hero"
-                side="left"
-                className="flex min-h-[calc(100svh-5rem)] items-center"
-            >
-                <div data-orb-reveal data-orb-beside>
-                    <h1 id="hero-title">{site.name}</h1>
-                    <p>{site.headline}</p>
-                </div>
-            </Section>
+            <Hero />
 
             <Section id="about" side="left" className="py-24 md:py-32">
                 <h2 id="about-title">About</h2>

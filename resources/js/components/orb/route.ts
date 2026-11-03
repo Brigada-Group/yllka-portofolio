@@ -43,7 +43,22 @@ type Leg = {
 };
 
 /** The point where the orb's current leg begins. */
-type Cursor = { point: RoutePoint; scroll: number; bottom: number };
+type Cursor = {
+    point: RoutePoint;
+    scroll: number;
+    bottom: number;
+    /**
+     * The orb is inside the content (as the dot of a letter), so it must
+     * first leave it: `down` below the content, or `right` along the line to
+     * the page margin. `none` when it rests in a gutter.
+     */
+    exit: 'none' | 'down' | 'right';
+    /** Width of the page margin right of the content, in px. */
+    margin: number;
+};
+
+/** How far below the content a letter stop's exit runs, in px. */
+const EXIT_BELOW = 24;
 
 const clamp = (value: number, min: number, max: number) =>
     Math.min(max, Math.max(min, value));
@@ -150,17 +165,46 @@ function cumulative(points: RoutePoint[]): number[] {
  * Desktop: travel between gutters. Changing sides happens in the gap
  * between the two sections, so the orb never crosses text.
  */
-function gutterLeg(from: Cursor, to: RoutePoint, toTop: number): RoutePoint[] {
-    if (Math.abs(from.point.x - to.x) < 1) {
-        return [from.point, to];
+function gutterLeg(
+    from: Cursor,
+    to: RoutePoint,
+    toTop: number,
+    layout: OrbLayout,
+): RoutePoint[] {
+    const { lift, start } = liftOff(from, layout);
+
+    if (Math.abs(start.x - to.x) < 1) {
+        return roundCorners([...lift, start, to], CORNER_RADIUS);
     }
 
     const gapY = (from.bottom + toTop) / 2;
 
     return roundCorners(
-        [from.point, { ...from.point, y: gapY }, { ...to, y: gapY }, to],
+        [...lift, start, { ...start, y: gapY }, { ...to, y: gapY }, to],
         CORNER_RADIUS,
     );
+}
+
+/**
+ * Leaving a dot at the end of a line: roll right, along the line, into the
+ * page margin, small enough to fit it. Returns the waypoints so far and the
+ * point to continue from.
+ */
+function liftOff(
+    from: Cursor,
+    layout: OrbLayout,
+): { lift: RoutePoint[]; start: RoutePoint } {
+    if (from.exit !== 'right') {
+        return { lift: [], start: from.point };
+    }
+
+    const start = {
+        x: layout.viewport.width - from.margin / 2,
+        y: from.point.y,
+        r: Math.max(2, Math.min(from.point.r, from.margin / 2 - 2)),
+    };
+
+    return { lift: [from.point], start };
 }
 
 /**
@@ -176,12 +220,18 @@ function edgeLeg(
     const travelRadius = Math.max(3, layout.gutter / 2 - 2);
     const edge = (x: number) =>
         x < width / 2 ? layout.gutter / 2 : width - layout.gutter / 2;
-    const fromEdge = edge(from.point.x);
+    const { lift, start } = liftOff(from, layout);
+    const fromEdge = edge(start.x);
+    // Leaving a letter downward: drop below the content first, so it doesn't slide through the text.
+    const down = from.exit === 'down';
+    const exitY = down ? from.bottom + EXIT_BELOW : start.y;
 
     return roundCorners(
         [
-            from.point,
-            { x: fromEdge, y: from.point.y, r: travelRadius },
+            ...lift,
+            start,
+            ...(down ? [{ ...start, y: exitY }] : []),
+            { x: fromEdge, y: exitY, r: travelRadius },
             { x: fromEdge, y: to.y, r: travelRadius },
             to,
         ],
@@ -228,7 +278,7 @@ export function buildOrbRoute(layout: OrbLayout, still: boolean): OrbRoute {
         return staticRoute({ x: -9999, y: -9999, r: radius });
     }
 
-    const rest: RoutePoint = { ...first.anchor, r: radius };
+    const rest: RoutePoint = { ...first.anchor, r: first.radius };
 
     if (still) {
         return staticRoute(rest);
@@ -241,17 +291,19 @@ export function buildOrbRoute(layout: OrbLayout, still: boolean): OrbRoute {
         point: rest,
         scroll: arrival(first.anchor.y),
         bottom: first.bounds.bottom,
+        exit: first.letter ? first.exit : 'none',
+        margin: viewport.width - first.bounds.right,
     };
 
     // Each leg starts after the previous one ends, even if the layout is too short to give it room.
     const after = (scroll: number) => Math.max(scroll, cursor.scroll + 1);
 
     for (const stop of stops.slice(1)) {
-        const target: RoutePoint = { ...stop.anchor, r: radius };
+        const target: RoutePoint = { ...stop.anchor, r: stop.radius };
 
         if (stop.pin) {
             const pin = stop.pin;
-            const travel = gutterLeg(cursor, target, stop.bounds.top);
+            const travel = gutterLeg(cursor, target, stop.bounds.top, layout);
             legs.push({
                 s0: cursor.scroll,
                 s1: after(pin.start),
@@ -266,7 +318,7 @@ export function buildOrbRoute(layout: OrbLayout, still: boolean): OrbRoute {
                 ],
             });
 
-            const spin = spinLeg(stop, radius);
+            const spin = spinLeg(stop, stop.radius);
             const s0 = after(pin.start);
             legs.push({
                 s0,
@@ -281,16 +333,22 @@ export function buildOrbRoute(layout: OrbLayout, still: boolean): OrbRoute {
             // After the pin, the section has moved down by the pin's length.
             const shift = pin.end - pin.start;
             cursor = {
-                point: { x: pin.entryX, y: stop.anchor.y + shift, r: radius },
+                point: {
+                    x: pin.entryX,
+                    y: stop.anchor.y + shift,
+                    r: stop.radius,
+                },
                 scroll: Math.max(pin.end, s0 + 1),
                 bottom: stop.bounds.bottom + shift,
+                exit: 'none',
+                margin: viewport.width - stop.bounds.right,
             };
             continue;
         }
 
         const points = compact
             ? edgeLeg(cursor, target, layout)
-            : gutterLeg(cursor, target, stop.bounds.top);
+            : gutterLeg(cursor, target, stop.bounds.top, layout);
         const s1 = after(arrival(stop.anchor.y));
 
         legs.push({
@@ -306,7 +364,13 @@ export function buildOrbRoute(layout: OrbLayout, still: boolean): OrbRoute {
                 { index: points.length - 1, t: 1 },
             ],
         });
-        cursor = { point: target, scroll: s1, bottom: stop.bounds.bottom };
+        cursor = {
+            point: target,
+            scroll: s1,
+            bottom: stop.bounds.bottom,
+            exit: stop.letter ? stop.exit : 'none',
+            margin: viewport.width - stop.bounds.right,
+        };
     }
 
     return createRoute(rest, legs);

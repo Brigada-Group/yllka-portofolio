@@ -22,6 +22,8 @@ export const SELECTORS = {
     lane: '[data-orb-lane]',
     /** Text the orb rests beside (on the stop's side) instead of out in the gutter. */
     beside: '[data-orb-beside]',
+    /** A dotless "ı" whose missing dot the orb becomes, taking the dot's size. */
+    dot: '[data-orb-dot]',
 } as const;
 
 /** Space kept between the orb and content or the viewport edge. */
@@ -37,6 +39,11 @@ const clamp = (value: number, min: number, max: number) =>
 
 function readMode(element: HTMLElement): OrbMode {
     return element.dataset.orbMode === 'horizontal' ? 'horizontal' : 'vertical';
+}
+
+/** How the orb leaves a stop it rests inside the text of: `right` along the line, or `down` below it. */
+function readExit(element: HTMLElement): 'down' | 'right' {
+    return element.dataset.orbExit === 'right' ? 'right' : 'down';
 }
 
 function readSide(element: HTMLElement): OrbSide {
@@ -197,6 +204,77 @@ function besideText(
         : null;
 }
 
+/** Smallest orb that still reads as an orb, even when the dot it replaces is tiny. */
+const MIN_DOT_RADIUS = 4;
+
+let fontCanvas: CanvasRenderingContext2D | null = null;
+
+/** Top-left of an element in document px, from layout offsets: transforms (reveal animations) don't move it. */
+function layoutOffset(element: HTMLElement): DocPoint {
+    let x = 0;
+    let y = 0;
+
+    for (
+        let node: HTMLElement | null = element;
+        node;
+        node = node.offsetParent as HTMLElement | null
+    ) {
+        x += node.offsetLeft;
+        y += node.offsetTop;
+    }
+
+    return { x, y };
+}
+
+/**
+ * Where the dot of the `[data-orb-dot]` glyph (a dotless "ı") would be, and
+ * how big, in document px. Measured from the element's actual font: the
+ * dot sits as high as a dotted "i" reaches, centred over the stem and about
+ * as wide as it. The orb is kept clear of the stem below.
+ */
+function dotSlot(
+    element: HTMLElement,
+): { anchor: DocPoint; radius: number } | null {
+    const glyph = element.querySelector<HTMLElement>(SELECTORS.dot);
+
+    if (!glyph || glyph.offsetWidth === 0) {
+        return null;
+    }
+
+    const style = getComputedStyle(glyph);
+    fontCanvas ??= document.createElement('canvas').getContext('2d');
+
+    if (!fontCanvas) {
+        return null;
+    }
+
+    fontCanvas.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+    const dotted = fontCanvas.measureText('i');
+    const dotless = fontCanvas.measureText('ı');
+
+    const stem = dotless.actualBoundingBoxLeft + dotless.actualBoundingBoxRight;
+    const xHeight = dotless.actualBoundingBoxAscent;
+    const dotTop = dotted.actualBoundingBoxAscent;
+    const dotSize = Math.min(stem * 1.15, dotTop - xHeight);
+    const centreAbove = dotTop - dotSize / 2;
+
+    // The glyph's inline box starts at the font's ascent above the baseline.
+    const { x, y } = layoutOffset(glyph);
+    const baseline = y + dotless.fontBoundingBoxAscent;
+    const centreX =
+        x +
+        (dotless.actualBoundingBoxRight - dotless.actualBoundingBoxLeft) / 2;
+    const clearOfStem = centreAbove - xHeight - 1;
+
+    return {
+        anchor: { x: centreX, y: baseline - centreAbove },
+        radius: Math.max(
+            Math.min(MIN_DOT_RADIUS, clearOfStem),
+            Math.min(dotSize / 2, clearOfStem),
+        ),
+    };
+}
+
 function measurePin(
     element: HTMLElement,
     trigger: ScrollTrigger,
@@ -302,12 +380,14 @@ export function measureOrbLayout(
         };
     }
 
-    // Size the orb to the narrowest gutter it has to travel through.
-    const gutter = Math.min(
-        ...measured.map(({ bounds, side }) =>
-            gutterWidth(bounds, side, viewport.width),
-        ),
-    );
+    const slots = measured.map(({ element }) => dotSlot(element));
+
+    // Size the orb to the narrowest gutter it has to travel through. Stops
+    // where it sits in a letter don't use their gutter.
+    const gutters = measured
+        .filter((_, index) => !slots[index])
+        .map(({ bounds, side }) => gutterWidth(bounds, side, viewport.width));
+    const gutter = gutters.length > 0 ? Math.min(...gutters) : viewport.width;
     const compact = gutter < MIN_RADIUS * 2 + MARGIN * 2;
     const radius = compact
         ? COMPACT_RADIUS
@@ -319,6 +399,23 @@ export function measureOrbLayout(
             const pin = trigger
                 ? measurePin(element, trigger, bounds, side, viewport.width)
                 : null;
+            const slot = slots[index];
+
+            if (slot) {
+                return {
+                    id: element.dataset.orbStop || `stop-${index}`,
+                    index,
+                    mode,
+                    side,
+                    element,
+                    bounds,
+                    anchor: slot.anchor,
+                    radius: slot.radius,
+                    letter: true,
+                    exit: readExit(element),
+                    pin: null,
+                };
+            }
 
             return {
                 id: element.dataset.orbStop || `stop-${index}`,
@@ -340,6 +437,9 @@ export function measureOrbLayout(
                           compact,
                           viewport.width,
                       ),
+                radius,
+                letter: false,
+                exit: readExit(element),
                 pin,
             };
         },

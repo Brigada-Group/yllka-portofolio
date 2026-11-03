@@ -212,6 +212,7 @@ export function createOrbPath(
     });
 
     window.addEventListener('resize', refresh);
+    document.fonts?.addEventListener('loadingdone', refresh);
     ScrollTrigger.addEventListener('refresh', refresh);
     gsap.ticker.add(tick);
 
@@ -233,6 +234,7 @@ export function createOrbPath(
             resizeObserver.disconnect();
             mutationObserver.disconnect();
             window.removeEventListener('resize', refresh);
+            document.fonts?.removeEventListener('loadingdone', refresh);
             ScrollTrigger.removeEventListener('refresh', refresh);
             pins.forEach((trigger, element) => removePin(element, trigger));
             pins.clear();

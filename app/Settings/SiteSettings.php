@@ -11,6 +11,12 @@ class SiteSettings extends Settings
 
     public string $headline;
 
+    /** Short role, shown in a corner of the hero, e.g. "Full-stack @ Brigada". */
+    public string $role;
+
+    /** Degree, shown in a corner of the hero. */
+    public ?string $education;
+
     public string $bio;
 
     public ?string $avatar;
@@ -20,6 +26,9 @@ class SiteSettings extends Settings
     public string $email;
 
     public ?string $location;
+
+    /** IANA timezone for the live local time in the hero, e.g. Europe/Zurich. */
+    public string $timezone;
 
     public ?string $linkedin_url;
 
@@ -44,11 +53,14 @@ class SiteSettings extends Settings
         return [
             'name' => $this->name,
             'headline' => $this->headline,
+            'role' => $this->role,
+            'education' => $this->education,
             'bio' => $this->bio,
             'avatar_url' => $this->avatar ? Storage::disk('public')->url($this->avatar) : null,
             'resume_url' => $this->resume ? Storage::disk('public')->url($this->resume) : null,
             'email' => $this->email,
             'location' => $this->location,
+            'timezone' => $this->timezone,
             'social' => [
                 'linkedin' => $this->linkedin_url,
                 'github' => $this->github_url,

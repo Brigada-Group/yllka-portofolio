@@ -6,14 +6,17 @@
  */
 let played = false;
 
-/** On <html> while the hero text waits for the orb's impact to reveal it. */
+/** On <html> while the hero headline waits for the orb to land. */
 export const INTRO_PENDING_CLASS = 'orb-intro';
 
 /** On <html> once the intro is driving the reveal; cancels the CSS fallback. */
 export const INTRO_RUNNING_CLASS = 'orb-intro-running';
 
-/** The element revealed from the orb's point of impact. */
+/** The headline revealed when the orb lands... */
 export const REVEAL_SELECTOR = '[data-orb-reveal]';
+
+/** ...one line at a time: each line slides up from behind a mask (an overflow-hidden parent). */
+export const REVEAL_LINE_SELECTOR = '[data-reveal-line]';
 
 export function shouldPlayIntro(): boolean {
     return (

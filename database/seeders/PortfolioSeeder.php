@@ -171,13 +171,13 @@ class PortfolioSeeder extends Seeder
                 'name' => 'Maria Keller',
                 'role' => 'Head of Product',
                 'company' => 'StayWell',
-                'quote' => 'Alex has a rare ability to move between research, design and code without losing sight of the user. The dashboard prototypes were so close to production that we skipped a whole handoff phase.',
+                'quote' => 'Yllka has a rare ability to move between research, design and code without losing sight of the user. The dashboard prototypes were so close to production that we skipped a whole handoff phase.',
             ],
             [
                 'name' => 'Jonas Weber',
                 'role' => 'Operations Manager',
                 'company' => 'Physio Plus',
-                'quote' => 'Our patients noticed the new booking flow straight away. Alex listened carefully to our reception team and it shows in the result.',
+                'quote' => 'Our patients noticed the new booking flow straight away. Yllka listened carefully to our reception team and it shows in the result.',
             ],
             [
                 'name' => 'Sara Lindqvist',

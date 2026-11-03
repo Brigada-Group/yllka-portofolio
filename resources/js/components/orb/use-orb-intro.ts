@@ -5,6 +5,7 @@ import {
     INTRO_PENDING_CLASS,
     INTRO_RUNNING_CLASS,
     markIntroPlayed,
+    REVEAL_LINE_SELECTOR,
     REVEAL_SELECTOR,
 } from './intro';
 import type { OrbMotion } from './motion';
@@ -29,20 +30,10 @@ const SKIP_KEYS = new Set([
     'Home',
 ]);
 
-/** Distance from (x, y) to the farthest corner of a w × h box. */
-function farthestCorner(x: number, y: number, w: number, h: number) {
-    return Math.max(
-        Math.hypot(x, y),
-        Math.hypot(w - x, y),
-        Math.hypot(x, h - y),
-        Math.hypot(w - x, h - y),
-    );
-}
-
 /**
  * The drop intro: the orb falls from above the viewport onto the first stop,
- * squashes, bounces twice and settles. The first impact reveals the hero
- * text from the point of contact. Any scroll input skips straight to the end state.
+ * squashes, bounces twice and settles. As it lands, the hero headline's
+ * lines slide up from behind their masks. Any scroll input skips straight to the end state.
  *
  * Everything is keyframed on one timeline, so skipping is just `progress(1)`.
  */
@@ -98,22 +89,24 @@ export function useOrbIntro({ path, motion, ready, enabled }: OrbIntroOptions) {
                 return;
             }
 
-            const radius = layout.radius;
             // Start fully above the viewport, so the orb drops in from off screen.
-            const fall = hero.anchor.y + radius * 3;
-            const target = document.querySelector<HTMLElement>(REVEAL_SELECTOR);
+            const fall = hero.anchor.y + hero.radius * 3;
+            const lines = Array.from(
+                document.querySelectorAll<HTMLElement>(
+                    `${REVEAL_SELECTOR} ${REVEAL_LINE_SELECTOR}`,
+                ),
+            );
             // If the CSS fallback already showed the text, play the drop without the reveal.
             const reveal =
-                target !== null && getComputedStyle(target).clipPath !== 'none';
+                lines.length > 0 &&
+                getComputedStyle(lines[0]).transform !== 'none';
 
             document.documentElement.classList.add(INTRO_RUNNING_CLASS);
 
             const finish = () => {
                 clearIntroClasses();
 
-                if (target) {
-                    gsap.set(target, { clearProps: 'clipPath' });
-                }
+                gsap.set(lines, { clearProps: 'transform' });
             };
 
             const tl = gsap.timeline();
@@ -160,21 +153,19 @@ export function useOrbIntro({ path, motion, ready, enabled }: OrbIntroOptions) {
                     'impact+=0.35',
                 );
 
-            if (reveal && target) {
-                const rect = target.getBoundingClientRect();
-                const x = hero.anchor.x - window.scrollX - rect.left;
-                const y = hero.anchor.y + radius - window.scrollY - rect.top;
-                const size = farthestCorner(x, y, rect.width, rect.height);
-
+            // The headline's lines slide up from behind their masks, one after
+            // the other, as the orb lands in its letter.
+            if (reveal) {
                 tl.fromTo(
-                    target,
-                    { clipPath: `circle(0px at ${x}px ${y}px)` },
+                    lines,
+                    { yPercent: 110 },
                     {
-                        clipPath: `circle(${size}px at ${x}px ${y}px)`,
+                        yPercent: 0,
                         duration: 1.1,
-                        ease: 'power2.out',
+                        ease: 'expo.out',
+                        stagger: 0.12,
                     },
-                    'impact',
+                    'impact+=0.05',
                 );
             }
 

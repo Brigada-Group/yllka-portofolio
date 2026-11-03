@@ -12,8 +12,8 @@ class SiteSettingsSeeder extends Seeder
     {
         $settings = app(SiteSettings::class);
 
-        $settings->name = 'Alex Morgan';
-        $settings->headline = 'Developer designing calm, usable interfaces.';
+        $settings->name = 'Yllka Selimi';
+        $settings->headline = 'Full-stack developer *designing* calm, usable interfaces.';
         $settings->bio = "I'm a frontend developer moving into UI/UX design. For the past six years I've built "
             .'product interfaces in React and Laravel, and somewhere along the way I realised the part I enjoy most '
             .'is figuring out what to build before writing any code: interviewing users, sketching flows and testing '
@@ -21,7 +21,11 @@ class SiteSettingsSeeder extends Seeder
         $settings->avatar = PlaceholderImage::make('site', 'Avatar', 600, 600);
         $settings->resume = $this->resume();
         $settings->email = 'hello@example.com';
-        $settings->location = 'Zurich, Switzerland';
+        $settings->location = 'Pristina';
+        $settings->role = 'Full-stack @ Brigada';
+        $settings->education = 'BSc Computer Science & Engineering';
+        // Kosovo has no IANA zone of its own; it uses Central European Time like Belgrade.
+        $settings->timezone = 'Europe/Belgrade';
         $settings->linkedin_url = 'https://www.linkedin.com/in/example';
         $settings->github_url = 'https://github.com/example';
         $settings->dribbble_url = 'https://dribbble.com/example';

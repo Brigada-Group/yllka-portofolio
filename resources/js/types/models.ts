@@ -90,12 +90,18 @@ export type ContactMessage = {
 /** Shared on every page by HandleInertiaRequests (SiteSettings::toPublicArray). */
 export type SiteSettings = {
     name: string;
+    /** Sentence under the name in the hero. Words in *asterisks* are set in italic serif. */
     headline: string;
+    /** Short role, shown in a corner of the hero. */
+    role: string;
+    education: string | null;
     bio: string;
     avatar_url: string | null;
     resume_url: string | null;
     email: string;
     location: string | null;
+    /** IANA timezone for the hero's live local time. */
+    timezone: string;
     social: {
         linkedin: string | null;
         github: string | null;

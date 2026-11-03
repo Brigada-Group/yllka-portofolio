@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Settings\SiteSettings;
 use BackedEnum;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Pages\SettingsPage;
@@ -37,7 +38,15 @@ class ManageSiteSettings extends SettingsPage
                         TextInput::make('name')
                             ->required()
                             ->maxLength(255),
+                        TextInput::make('role')
+                            ->required()
+                            ->maxLength(60)
+                            ->helperText('Shown in a corner of the hero, e.g. "Full-stack @ Brigada".'),
+                        TextInput::make('education')
+                            ->maxLength(80)
+                            ->helperText('Shown in a corner of the hero.'),
                         TextInput::make('headline')
+                            ->helperText('Shown under your name in the hero. Wrap words in *asterisks* to set them in italic serif.')
                             ->required()
                             ->maxLength(255),
                         Textarea::make('bio')
@@ -47,6 +56,11 @@ class ManageSiteSettings extends SettingsPage
                             ->email()
                             ->required(),
                         TextInput::make('location'),
+                        Select::make('timezone')
+                            ->options(fn () => array_combine(timezone_identifiers_list(), timezone_identifiers_list()))
+                            ->searchable()
+                            ->required()
+                            ->helperText('For the live local time in the hero.'),
                     ]),
 
                 Section::make('Files')

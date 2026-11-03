@@ -72,12 +72,18 @@ export type OrbStop = {
      * the content when compact. For a pinned stop, in the gutter beside the lane.
      */
     anchor: DocPoint;
+    /** The orb's radius at this stop, in px: the layout radius, or the size of the dot it replaces. */
+    radius: number;
+    /** Resting inside the text as the dot of a `data-orb-dot` "ı": part of the word, so it doesn't drift. */
+    letter: boolean;
+    /** How it leaves a stop inside the text (`data-orb-exit`): along the line to the right, or down below it. */
+    exit: 'down' | 'right';
     pin: OrbPin | null;
 };
 
 export type OrbLayout = {
     stops: OrbStop[];
-    /** Orb radius in CSS px, sized to fit the narrowest gutter. */
+    /** Orb radius in CSS px, sized to fit the narrowest gutter. Letter stops use their own (see OrbStop.radius). */
     radius: number;
     /**
      * True when gutters are too narrow for the orb (mobile). Stops then sit
