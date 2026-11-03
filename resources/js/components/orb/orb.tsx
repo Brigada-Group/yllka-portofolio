@@ -1,16 +1,12 @@
-import { MeshTransmissionMaterial } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import { MathUtils, Quaternion, Vector3 } from 'three';
 import type { Group, Mesh, MeshBasicMaterial } from 'three';
+import { createBloomMaterial, HALO_COLOR, setBreath } from './bloom-material';
 import { docToWorld, pxToWorld } from './coordinates';
 import type { OrbMotion } from './motion';
 import { OrbOrientation } from './orientation';
-import {
-    createEtchTexture,
-    createRefractionTexture,
-    createShadowTexture,
-} from './textures';
+import { createHaloTexture, createShadowTexture } from './textures';
 import type { OrbPathStore, OrbRoute, OrbSample } from './types';
 import { useOrbPointer } from './use-orb-pointer';
 
@@ -18,7 +14,7 @@ type OrbProps = {
     path: OrbPathStore;
     motion: OrbMotion;
     quality: 'high' | 'low';
-    /** Lean towards the mouse on hover. Off for reduced motion. */
+    /** Hover, idle drift, breathing and swirl. Off for reduced motion. */
     interactive: boolean;
 };
 
@@ -29,7 +25,22 @@ const HOVER_TILT = 0.35;
 /** The pointer counts as hovering within this many radii of the centre. */
 const HOVER_REACH = 1.4;
 
-const SHADOW_OPACITY = 0.22;
+const SHADOW_OPACITY = 0.18;
+
+/** Breathing: one slow breath every 6s at rest, a quick one every 2s while busy (moving or hovered). */
+const BREATH_REST = 6;
+const BREATH_BUSY = 2;
+/** The blobs swirl once every 24s at rest, every 8s while busy, on top of rolling. */
+const SWIRL_REST = 24;
+const SWIRL_BUSY = 8;
+/** Speed (px/s along the route) that counts as fully busy. */
+const BUSY_SPEED = 800;
+/** The busy glow pulses every 1.6s. */
+const GLOW_PERIOD = 1.6;
+/** Halo: lavender, at 45% opacity, slightly larger than the orb and a little low. */
+const HALO_OPACITY = 0.45;
+const HALO_SIZE = 1.3;
+const HALO_DROP = 0.08;
 
 /** Stretch along the direction of travel: up to this much longer at high speed. */
 const MAX_STRETCH = 0.14;
@@ -65,18 +76,17 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
     const pointer = useOrbPointer(interactive);
 
     const textures = useMemo(
-        () => ({
-            refraction: createRefractionTexture(),
-            etch: createEtchTexture(),
-            shadow: createShadowTexture(),
-        }),
+        () => ({ halo: createHaloTexture(), shadow: createShadowTexture() }),
         [],
     );
+    const bloom = useMemo(createBloomMaterial, []);
 
     useEffect(
-        () => () =>
-            Object.values(textures).forEach((texture) => texture.dispose()),
-        [textures],
+        () => () => {
+            Object.values(textures).forEach((texture) => texture.dispose());
+            bloom.dispose();
+        },
+        [textures, bloom],
     );
 
     // Per-frame scratch values, kept out of React state.
@@ -95,6 +105,13 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
         stretch: 1,
         idle: 0,
         drift: { x: 0, y: 0 },
+        // Breathing and swirl.
+        busy: 0,
+        breath: 0,
+        swirl: 0,
+        glow: 0,
+        spin: new Quaternion(),
+        view: new Vector3(0, 0, 1),
     });
 
     useFrame(({ size, viewport }, delta) => {
@@ -240,8 +257,37 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
         );
         unstretch.current.rotation.z = -axis;
 
-        // Roll, then tilt towards the pointer (the same way rolling towards it would).
+        // Breathe and swirl, faster while busy (moving or hovered). Still for reduced motion.
+        if (interactive) {
+            state.busy = MathUtils.damp(
+                state.busy,
+                Math.max(Math.min(speed / BUSY_SPEED, 1), state.hover),
+                3,
+                delta,
+            );
+            state.breath =
+                (state.breath +
+                    delta /
+                        MathUtils.lerp(BREATH_REST, BREATH_BUSY, state.busy)) %
+                1;
+            state.swirl +=
+                (delta / MathUtils.lerp(SWIRL_REST, SWIRL_BUSY, state.busy)) *
+                Math.PI *
+                2;
+            state.glow = (state.glow + delta / GLOW_PERIOD) % 1;
+        }
+
+        setBreath(
+            bloom,
+            interactive ? state.breath : 0.5,
+            state.busy * (0.5 - 0.5 * Math.cos(state.glow * Math.PI * 2)),
+        );
+
+        // Roll, then swirl about the view axis, then tilt towards the pointer.
         state.orientation.table.at(point, roll.current.quaternion);
+        roll.current.quaternion.premultiply(
+            state.spin.setFromAxisAngle(state.view, state.swirl),
+        );
 
         if (pull > 0) {
             state.axis.set(dy, dx, 0).normalize();
@@ -297,43 +343,29 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
 
             {/* Position and intro squash > stretch along heading > undo its turn > roll. */}
             <group ref={body} visible={false}>
+                {/* Soft lavender halo behind the orb. */}
+                <mesh
+                    position={[0, -HALO_DROP, -1.05]}
+                    scale={HALO_SIZE * 2}
+                    renderOrder={-1}
+                    frustumCulled={false}
+                >
+                    <planeGeometry />
+                    <meshBasicMaterial
+                        map={textures.halo}
+                        color={HALO_COLOR}
+                        transparent
+                        opacity={HALO_OPACITY}
+                        depthWrite={false}
+                        toneMapped={false}
+                    />
+                </mesh>
                 <group ref={stretch}>
                     <group ref={unstretch}>
                         <group ref={roll}>
-                            <mesh frustumCulled={false}>
+                            <mesh frustumCulled={false} material={bloom}>
                                 <sphereGeometry
                                     args={[1, segments, segments / 2]}
-                                />
-                                <MeshTransmissionMaterial
-                                    buffer={textures.refraction}
-                                    samples={quality === 'high' ? 6 : 3}
-                                    transmission={1}
-                                    roughness={0.02}
-                                    thickness={0.9}
-                                    ior={1.45}
-                                    chromaticAberration={
-                                        quality === 'high' ? 0.05 : 0
-                                    }
-                                    anisotropicBlur={0.04}
-                                    distortion={0.12}
-                                    distortionScale={0.4}
-                                    temporalDistortion={0}
-                                    clearcoat={1}
-                                    clearcoatRoughness={0.1}
-                                    envMapIntensity={1.2}
-                                    color="#ffffff"
-                                />
-                            </mesh>
-                            {/* Etched lines, just outside the glass, so the roll stays visible. */}
-                            <mesh scale={1.003} frustumCulled={false}>
-                                <sphereGeometry
-                                    args={[1, segments, segments / 2]}
-                                />
-                                <meshBasicMaterial
-                                    map={textures.etch}
-                                    transparent
-                                    opacity={0.45}
-                                    depthWrite={false}
                                 />
                             </mesh>
                         </group>

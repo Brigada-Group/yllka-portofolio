@@ -1,4 +1,3 @@
-import { Environment, Lightformer } from '@react-three/drei';
 import { advance, Canvas, useFrame } from '@react-three/fiber';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -108,31 +107,6 @@ export default function OrbCanvas({
             }}
             camera={{ fov: 25, position: [0, 0, 20], near: 0.1, far: 100 }}
         >
-            <hemisphereLight args={['#ffffff', '#a1a1aa', 0.6]} />
-            <directionalLight position={[-4, 6, 8]} intensity={1.2} />
-
-            {/* A soft studio for the glass to reflect. Built in the scene: no HDR download. */}
-            <Environment resolution={mobile ? 64 : 256} frames={1}>
-                <Lightformer
-                    form="rect"
-                    intensity={2.5}
-                    position={[-5, 5, 5]}
-                    scale={[6, 3, 1]}
-                />
-                <Lightformer
-                    form="ring"
-                    intensity={1.5}
-                    position={[5, 2, 4]}
-                    scale={3}
-                />
-                <Lightformer
-                    form="rect"
-                    intensity={0.8}
-                    position={[0, -5, 3]}
-                    scale={[10, 1, 1]}
-                />
-            </Environment>
-
             <Orb
                 path={path}
                 motion={motion}

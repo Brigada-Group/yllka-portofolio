@@ -17,56 +17,26 @@ function canvasTexture(
 }
 
 /**
- * What the glass refracts. The page is HTML, outside the 3D scene, so the
- * glass bends this instead: a faint design grid with soft shading, seen only
- * through the orb. Mapped to the screen, so it reads as a backdrop behind the page.
+ * The bloom's soft halo: a blurred disc, solid to about 80% of its radius
+ * and fading to nothing at the edge. Tinted by the material colour.
  */
-export function createRefractionTexture(): CanvasTexture {
-    const size = 1024;
+export function createHaloTexture(): CanvasTexture {
+    const size = 128;
 
     return canvasTexture(size, size, (context) => {
-        context.fillStyle = '#ffffff';
+        const gradient = context.createRadialGradient(
+            size / 2,
+            size / 2,
+            0,
+            size / 2,
+            size / 2,
+            size / 2,
+        );
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+        gradient.addColorStop(0.75, 'rgba(255, 255, 255, 0.8)');
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        context.fillStyle = gradient;
         context.fillRect(0, 0, size, size);
-
-        for (const [x, y, radius, alpha] of [
-            [0.25, 0.3, 0.45, 0.18],
-            [0.75, 0.7, 0.5, 0.14],
-        ]) {
-            const gradient = context.createRadialGradient(
-                x * size,
-                y * size,
-                0,
-                x * size,
-                y * size,
-                radius * size,
-            );
-            gradient.addColorStop(0, `rgba(24, 24, 27, ${alpha})`);
-            gradient.addColorStop(1, 'rgba(24, 24, 27, 0)');
-            context.fillStyle = gradient;
-            context.fillRect(0, 0, size, size);
-        }
-
-        for (let i = 0; i <= size; i += 32) {
-            const major = i % 128 === 0;
-            context.fillStyle = major
-                ? 'rgba(24, 24, 27, 0.35)'
-                : 'rgba(24, 24, 27, 0.14)';
-            context.fillRect(i, 0, major ? 2 : 1, size);
-            context.fillRect(0, i, size, major ? 2 : 1);
-        }
-    });
-}
-
-/**
- * Faint lines etched into the glass: an equator and one great circle.
- * A clear sphere looks the same at any rotation, so these show it rolling.
- */
-export function createEtchTexture(): CanvasTexture {
-    return canvasTexture(1024, 512, (context) => {
-        context.fillStyle = 'rgba(255, 255, 255, 0.9)';
-        context.fillRect(0, 254, 1024, 4);
-        context.fillRect(0, 0, 4, 512);
-        context.fillRect(510, 0, 4, 512);
     });
 }
 
