@@ -5,13 +5,11 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
         @if ($page['component'] === 'home')
-            {{-- Hide the hero text before first paint when the orb intro will reveal it. Mirrors shouldPlayIntro() in resources/js/components/orb/intro.ts. --}}
+            {{-- Hide the hero text before first paint, so the orb intro can reveal it. Mirrors shouldPlayIntro() in resources/js/components/orb/intro.ts. --}}
             <script>
-                try {
-                    if (!sessionStorage.getItem('orb-intro-played') && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
-                        document.documentElement.classList.add('orb-intro');
-                    }
-                } catch (e) {}
+                if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                    document.documentElement.classList.add('orb-intro');
+                }
             </script>
         @endif
 
