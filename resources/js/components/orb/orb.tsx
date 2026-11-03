@@ -2,45 +2,55 @@ import { useFrame } from '@react-three/fiber';
 import { useRef } from 'react';
 import type { Mesh } from 'three';
 import { docToWorld, pxToWorld } from './coordinates';
+import type { OrbMotion } from './motion';
 import type { OrbPathStore } from './types';
 
 type OrbProps = {
     path: OrbPathStore;
+    motion: OrbMotion;
     quality: 'high' | 'low';
 };
 
 /**
- * Placeholder orb (phase 1): rests at the first stop and scrolls with the page.
+ * The orb. Rests at the first stop, offset and squashed by `motion`.
  * The geometry is a unit sphere scaled to the measured radius, so resizing
  * never rebuilds geometry.
  */
-export default function Orb({ path, quality }: OrbProps) {
+export default function Orb({ path, motion, quality }: OrbProps) {
     const mesh = useRef<Mesh>(null);
     const segments = quality === 'high' ? 64 : 32;
 
     useFrame(({ size, viewport }) => {
         const orb = mesh.current;
-        const layout = path.get();
-        const stop = layout.stops[0];
 
-        if (!orb || !stop) {
-            if (orb) {
-                orb.visible = false;
-            }
-
+        if (!orb) {
             return;
         }
 
-        orb.visible = true;
+        const layout = path.get();
+        const stop = layout.stops[0];
+        orb.visible = motion.visible && stop !== undefined;
+
+        if (!stop) {
+            return;
+        }
+
+        const radius = layout.radius;
+        // Squash around the contact point, so the bottom stays on the ground.
+        const groundOffset = radius * (1 - motion.squash);
+
         docToWorld(
             stop.anchor.x,
-            stop.anchor.y,
+            stop.anchor.y + motion.offsetY + groundOffset,
             window.scrollY,
             size,
             viewport.width,
             orb.position,
         );
-        orb.scale.setScalar(pxToWorld(layout.radius, size, viewport.width));
+
+        const scale = pxToWorld(radius, size, viewport.width);
+        const sideways = scale / Math.sqrt(motion.squash);
+        orb.scale.set(sideways, scale * motion.squash, sideways);
     });
 
     return (

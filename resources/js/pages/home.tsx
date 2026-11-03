@@ -67,8 +67,10 @@ export default function Home({
                 side="right"
                 className="flex min-h-[calc(100svh-5rem)] items-center"
             >
-                <h1 id="hero-title">{site.name}</h1>
-                <p>{site.headline}</p>
+                <div data-orb-reveal>
+                    <h1 id="hero-title">{site.name}</h1>
+                    <p>{site.headline}</p>
+                </div>
             </Section>
 
             <Section id="about" side="left" className="py-24 md:py-32">

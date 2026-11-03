@@ -2,3 +2,24 @@
 @import 'lenis/dist/lenis.css';
 
 @source '../views';
+
+/*
+ * Orb intro: the hero text stays clipped until the orb's impact ripple
+ * reveals it. If the intro never starts (WebGL unavailable, script error),
+ * the fallback animation shows the text after 3s anyway.
+ * See resources/js/components/orb/intro.ts.
+ */
+.orb-intro [data-orb-reveal] {
+    clip-path: circle(0 at 100% 50%);
+    animation: orb-reveal-fallback 0s linear 3s forwards;
+}
+
+.orb-intro-running [data-orb-reveal] {
+    animation: none;
+}
+
+@keyframes orb-reveal-fallback {
+    to {
+        clip-path: none;
+    }
+}

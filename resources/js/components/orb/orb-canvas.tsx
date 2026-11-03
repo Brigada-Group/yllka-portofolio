@@ -1,12 +1,17 @@
 import { Canvas } from '@react-three/fiber';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import type { OrbMotion } from './motion';
 import Orb from './orb';
 import OrbDebug from './orb-debug';
+import OrbRipple from './orb-ripple';
 import type { OrbPathStore } from './types';
 
 type OrbCanvasProps = {
     path: OrbPathStore;
+    motion: OrbMotion;
+    /** Called once the WebGL context exists and the first frame can render. */
+    onReady: () => void;
     mobile: boolean;
     debug: boolean;
 };
@@ -35,7 +40,13 @@ function usePageVisible(): boolean {
  * It is portalled to <body> so it sits below the layout's content layer
  * (z-10) instead of inside it.
  */
-export default function OrbCanvas({ path, mobile, debug }: OrbCanvasProps) {
+export default function OrbCanvas({
+    path,
+    motion,
+    onReady,
+    mobile,
+    debug,
+}: OrbCanvasProps) {
     const visible = usePageVisible();
 
     return createPortal(
@@ -56,12 +67,18 @@ export default function OrbCanvas({ path, mobile, debug }: OrbCanvasProps) {
                 powerPreference: 'high-performance',
             }}
             camera={{ fov: 25, position: [0, 0, 20], near: 0.1, far: 100 }}
+            onCreated={onReady}
         >
             <hemisphereLight args={['#ffffff', '#a1a1aa', 1.2]} />
             <directionalLight position={[-4, 6, 8]} intensity={2.2} />
             <directionalLight position={[5, -2, -4]} intensity={0.6} />
 
-            <Orb path={path} quality={mobile ? 'low' : 'high'} />
+            <Orb
+                path={path}
+                motion={motion}
+                quality={mobile ? 'low' : 'high'}
+            />
+            <OrbRipple path={path} motion={motion} />
             {debug && <OrbDebug path={path} />}
         </Canvas>,
         document.body,
