@@ -85,3 +85,18 @@ test('site settings are shared with every page', function (string $url) {
             ->has('site', fn (Assert $site) => $site
                 ->hasAll(['name', 'title', 'headline', 'role', 'education', 'bio', 'avatar_url', 'resume_url', 'email', 'phone', 'languages', 'location', 'timezone', 'social'])));
 })->with(['/', '/projects', '/about', '/contact']);
+
+test('case study sections cleared in the editor are stored as empty', function () {
+    $project = Project::factory()->create([
+        'problem' => '<p></p>',
+        'process' => '<p><br></p>',
+        'solution' => '<p>&nbsp;</p>',
+        'outcome' => '<p>Shipped it.</p>',
+    ]);
+
+    expect($project->refresh())
+        ->problem->toBeNull()
+        ->process->toBeNull()
+        ->solution->toBeNull()
+        ->outcome->toBe('<p>Shipped it.</p>');
+});

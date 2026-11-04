@@ -29,11 +29,38 @@ class Project extends Model
     /** @use HasFactory<ProjectFactory> */
     use HasFactory, HasSortOrder;
 
+    /** Case study sections, written in the rich editor. */
+    public const SECTIONS = ['problem', 'process', 'solution', 'outcome'];
+
     protected static function booted(): void
     {
         static::saving(function (Project $project) {
             $project->slug = $project->slug ?: Str::slug($project->title);
+
+            // A cleared rich editor still saves an empty paragraph. Store
+            // nothing instead, so the section (and its heading) is left out.
+            foreach (self::SECTIONS as $section) {
+                if (self::isBlankHtml($project->{$section})) {
+                    $project->{$section} = null;
+                }
+            }
         });
+    }
+
+    /** True when rich text has no words and no media, e.g. "<p></p>" or "<p><br></p>". */
+    public static function isBlankHtml(?string $html): bool
+    {
+        if ($html === null) {
+            return true;
+        }
+
+        if (preg_match('/<(img|video|iframe|figure)\b/i', $html)) {
+            return false;
+        }
+
+        $text = html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5);
+
+        return trim(str_replace("\u{00A0}", ' ', $text)) === '';
     }
 
     /**
