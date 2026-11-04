@@ -11,6 +11,7 @@ use App\Models\Testimonial;
 use App\Settings\SiteSettings;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Yllka Selimi's portfolio content: site settings, projects, skills and
@@ -38,10 +39,10 @@ class PortfolioContentSeeder extends Seeder
         $settings = app(SiteSettings::class);
 
         $settings->name = 'Yllka Selimi';
-        $settings->title = 'Frontend Developer · UI/UX';
+        $settings->title = 'UI/UX and Frontend Specialist';
         $settings->headline = 'Frontend developer *designing* calm, usable interfaces.';
-        $settings->bio = 'Frontend-focused developer with 3 years of professional experience building web applications. '
-            .'I bring a strong interest in UI/UX: user flows, design systems and calm, accessible interfaces.';
+        $settings->bio = 'UI/UX and frontend specialist with 3 years of professional experience building web applications. '
+            .'I work across user flows, design systems and calm, accessible interfaces, and I build what I design.';
         $settings->role = 'Frontend @ Brigada';
         $settings->education = 'BSc Computer Science & Engineering';
         $settings->location = 'Pristina, Kosovo';
@@ -67,49 +68,80 @@ class PortfolioContentSeeder extends Seeder
     {
         Project::query()->delete();
 
-        $todo = fn (string $what) => "<p>[TODO: write {$what}]</p>";
-
         $projects = [
             [
-                'title' => 'Vector Guest (Harold OS)',
+                'title' => 'Vector Guest',
                 'slug' => 'vector-guest',
-                'short_description' => "A hospitality operating system that combines a system of records with LLM agents to run a property portfolio's whole operation: revenue, demand, guest journey and the ground team's daily decisions.",
-                'context' => 'Built operator-first with a design partner running a multi-million-euro aparthotel portfolio.',
-                'role' => 'UI/UX Designer',
+                'short_description' => 'The agentic AI system for hotel operations: it connects hotel data and workflows across the existing stack, so agents complete work with approvals and autonomy the operator controls.',
+                'context' => 'Yllka joined the product in October 2026. The image shows the public product site, not her redesign.',
+                'role' => 'UI/UX and Frontend',
                 'category' => 'Hospitality · AI',
+                'year' => 2026,
+                'tools' => ['Claude Design'],
+                'problem' => '<p>Hotel operations software is dense: many numbers, dates and decisions on one screen. Operators still need to judge everything at a glance and stay in control of what the AI does.</p>',
+                'process' => '<p>I reviewed the product page by page and proposed shared patterns for hierarchy, statuses, spacing, cards and calls to action. I design screens in Claude Design for team review before they reach the codebase.</p>',
+                'cover_image' => $this->publishImage('vector-guest-cover.jpg'),
+                'cover_image_alt' => 'The Vector Guest website beside a product dashboard showing arrivals, turnovers and bookings.',
+                'gallery' => [
+                    [
+                        'image' => $this->publishImage('vector-guest-cover.jpg'),
+                        'alt' => 'The Vector Guest website beside a product dashboard showing arrivals, turnovers and bookings.',
+                    ],
+                ],
+                'live_url' => 'https://vectorguest.com',
             ],
             [
                 'title' => 'Anthem',
                 'slug' => 'anthem',
-                'short_description' => 'A recruiting platform for casting voice actors on projects.',
-                'context' => null,
+                'short_description' => 'A digital casting marketplace connecting brands and agencies with talent.',
+                'context' => 'Frontend work from March to June 2025, as part of the Brigada team.',
                 'role' => 'Frontend Developer',
                 'category' => 'Recruiting · Platform',
+                'year' => 2025,
+                'tools' => ['React', 'Tailwind CSS', 'Laravel'],
+                'problem' => '<p>Casting involves two sides with different needs: agencies seeking talent and agencies representing it. Each needs its own workspace around the same briefs.</p>',
+                'process' => '<p>I built early frontend work in React: the responsive landing page, sign-in, dashboards for both agency types and the multi-step brief creation flow.</p>',
+                'cover_image' => $this->publishImage('anthem-cover.jpg'),
+                'cover_image_alt' => 'The Anthem landing page: a headline about casting talent beside a flowing coral and teal shape.',
+                'gallery' => [
+                    [
+                        'image' => $this->publishImage('anthem-cover.jpg'),
+                        'alt' => 'The Anthem landing page: a headline about casting talent beside a flowing coral and teal shape.',
+                    ],
+                    [
+                        'image' => $this->publishImage('anthem-briefs.jpg'),
+                        'alt' => 'The Anthem casting briefs workspace, with a sidebar and a grid of open briefs.',
+                    ],
+                ],
+                'live_url' => 'https://anthemglobal.io',
             ],
         ];
 
         foreach ($projects as $index => $project) {
             Project::create([
-                ...$project,
-                'year' => null,
                 'client' => null,
                 'duration' => null,
-                'tools' => [],
-                'problem' => $todo('the problem'),
-                'process' => $todo('the process'),
-                'solution' => $todo('the solution'),
-                'outcome' => $todo('the outcome'),
-                // No cover yet: the site shows a gradient mesh until one is uploaded.
-                'cover_image' => null,
+                'solution' => null,
+                'outcome' => null,
                 'gallery' => [],
-                'live_url' => null,
                 'repo_url' => null,
                 'figma_url' => null,
                 'is_featured' => true,
                 'is_published' => true,
                 'sort_order' => $index + 1,
+                ...$project,
             ]);
         }
+    }
+
+    /** Copy a project image from the seeder folder to public storage and return its path. */
+    protected function publishImage(string $filename): string
+    {
+        $path = "projects/{$filename}";
+
+        Storage::disk('public')->put($path, file_get_contents(database_path("seeders/images/{$filename}")));
+
+        return $path;
     }
 
     protected function skills(): void
@@ -117,7 +149,7 @@ class PortfolioContentSeeder extends Seeder
         Skill::query()->delete();
 
         $skills = [
-            SkillCategory::Frontend->value => ['React', 'JavaScript', 'Tailwind CSS', 'Three.js'],
+            SkillCategory::Frontend->value => ['React', 'TypeScript', 'JavaScript', 'Tailwind CSS', 'Three.js', 'Git'],
             SkillCategory::Backend->value => ['Laravel', 'PHP'],
             SkillCategory::Design->value => ['Figma', 'Claude Design', 'Wireframing', 'Prototyping', 'Design systems'],
         ];
