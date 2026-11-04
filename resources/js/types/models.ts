@@ -104,7 +104,7 @@ export type ContactMessage = {
 /** Shared on every page by HandleInertiaRequests (SiteSettings::toPublicArray). */
 export type SiteSettings = {
     name: string;
-    /** Professional title, e.g. "Frontend Developer · UI/UX". */
+    /** Professional title, e.g. "UI/UX and Frontend Specialist". */
     title: string;
     /** Sentence under the name in the hero. Words in *asterisks* are set in italic serif. */
     headline: string;

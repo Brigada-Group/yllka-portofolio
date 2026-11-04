@@ -4,7 +4,7 @@ type SeoProps = {
     /**
      * Page title, followed by the site name ("Projects — Yllka Selimi").
      * Omit on the home page, which is titled with the name and title
-     * ("Yllka Selimi — Frontend Developer · UI/UX").
+     * ("Yllka Selimi — UI/UX and Frontend Specialist").
      */
     title?: string;
     description: string;
