@@ -73,11 +73,11 @@
     --theme-line: rgb(255 255 255 / 0.08);
     --theme-field: #696867; /* 3.5:1 */
     --theme-bar: rgb(14 14 15 / 0.7);
-    /* Hero glow and the light it casts on the name (r g b). */
-    --theme-glow: 124 124 240;
+    /* Hero glow and the light it casts on the name (r g b), in the orb's coral rose. */
+    --theme-glow: 226 104 112;
     --theme-glow-strength: 1;
     --theme-glow-size: 1;
-    --theme-letter-light: 176 168 255;
+    --theme-letter-light: 240 168 160;
     --theme-grain-opacity: 0.06;
     --theme-grain-invert: 0;
 }
@@ -92,10 +92,10 @@
     --theme-line: rgb(18 18 18 / 0.1);
     --theme-field: #85837e; /* 3.4:1 */
     --theme-bar: rgb(243 241 236 / 0.72);
-    --theme-glow: 80 80 200;
+    --theme-glow: 196 76 84;
     --theme-glow-strength: 0.55;
     --theme-glow-size: 0.75;
-    --theme-letter-light: 80 80 200;
+    --theme-letter-light: 184 67 62;
     --theme-grain-opacity: 0.035;
     --theme-grain-invert: 1;
 }
@@ -219,7 +219,7 @@ html {
 
 /*
  * Hero orb glow (see resources/js/components/hero-orb.tsx). A large, faint
- * violet glow centred on the orb, which also lights the letters nearest to
+ * glow in the orb's colours centred on the orb, which also lights the letters nearest to
  * it (--glow-*, set on the name).
  */
 .hero-glow {

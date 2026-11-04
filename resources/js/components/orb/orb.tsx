@@ -537,7 +537,7 @@ export default function Orb({
 
             {/* Position and intro squash > stretch along heading > undo its turn > roll. */}
             <group ref={body} visible={false}>
-                {/* Soft lavender halo behind the orb. */}
+                {/* Soft halo behind the orb. */}
                 <mesh
                     position={[0, -HALO_DROP, -1.05]}
                     scale={HALO_SIZE * 2}

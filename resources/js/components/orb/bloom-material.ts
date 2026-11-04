@@ -1,20 +1,26 @@
 import { ShaderMaterial, Vector3 } from 'three';
 
 /**
- * "Breathing bloom" (Harold symbol exploration, no. 16): a periwinkle orb
- * with blurred indigo, lavender and pink-violet blobs, an aqua bloom that
- * breathes from the centre outward, and grain on top.
+ * "Breathing bloom" (after Harold symbol exploration, no. 16), in the colours
+ * of the Vector Guest cover: a rose orb with blurred coral, amber and magenta
+ * blobs placed as on the cover (coral top left, amber right, magenta bottom
+ * left), a warm gold bloom that breathes from the centre outward, and grain
+ * on top.
  *
- * Unlit, and composited in sRGB like the SVG it comes from, so the colours
- * match the exploration file exactly. Blobs live on the sphere's surface, so
- * they roll with it. The aqua bloom is fixed to the centre of the disc.
+ * Unlit, and composited in sRGB like the SVG it comes from. Blobs live on the
+ * sphere's surface, so they roll with it. The bloom is fixed to the centre of
+ * the disc.
  */
 const PALETTE = {
-    indigo: '#3B2FB8',
-    peri: '#7C7CF0',
-    lavender: '#C6BCF6',
-    pinkViolet: '#D59AEB',
-    aqua: '#9FE3EC',
+    /* The cover's three blobs (see meshStyle in project-cover.tsx). */
+    coral: '#E2615A',
+    amber: '#D1AA47',
+    magenta: '#E278DD',
+    /* A rose between them for the base: the cover's near-black base would vanish on the dark page. */
+    rose: '#B4566A',
+    gold: '#F2C979',
+    blush: '#EBA3B5',
+    deepCoral: '#B8433E',
 };
 
 /** sRGB components, without three's colour management (the shader outputs them as-is). */
@@ -46,23 +52,24 @@ const front = (x: number, y: number) => {
  * Radii are in orb radii (SVG radius / 25).
  */
 const BLOBS: { at: Vector3; color: string; radius: number }[] = [
-    { at: front(34, 10), color: PALETTE.indigo, radius: 17 / 25 },
-    { at: front(12, 42), color: PALETTE.lavender, radius: 13 / 25 },
-    { at: front(54, 44), color: PALETTE.pinkViolet, radius: 10 / 25 },
+    // Where the cover has them (its 0–100% box mapped onto the orb's face).
+    { at: front(19.5, 18.5), color: PALETTE.coral, radius: 17 / 25 },
+    { at: front(50.5, 33.5), color: PALETTE.amber, radius: 13 / 25 },
+    { at: front(19.5, 50), color: PALETTE.magenta, radius: 12 / 25 },
     {
         at: new Vector3(-0.3, -0.6, -0.74).normalize(),
-        color: PALETTE.indigo,
+        color: PALETTE.coral,
         radius: 17 / 25,
     },
     {
         at: new Vector3(0.6, 0.5, -0.62).normalize(),
-        color: PALETTE.lavender,
+        color: PALETTE.amber,
         radius: 13 / 25,
     },
     {
         at: new Vector3(-0.7, 0.4, -0.59).normalize(),
-        color: PALETTE.pinkViolet,
-        radius: 10 / 25,
+        color: PALETTE.magenta,
+        radius: 12 / 25,
     },
 ];
 
@@ -79,7 +86,7 @@ const vertexShader = /* glsl */ `
 
 const fragmentShader = /* glsl */ `
     uniform vec3 uBase;
-    uniform vec3 uAqua;
+    uniform vec3 uBloom;
     uniform vec3 uBlobAt[${BLOBS.length}];
     uniform vec3 uBlobColor[${BLOBS.length}];
     uniform float uBlobRadius[${BLOBS.length}];
@@ -117,9 +124,9 @@ const fragmentShader = /* glsl */ `
             color = mix(color, uBlobColor[i], softDisc(d, uBlobRadius[i], BLUR));
         }
 
-        // The breathing aqua bloom and its white core, fixed to the disc (y up).
+        // The breathing gold bloom and its white core, fixed to the disc (y up).
         vec2 disc = vView.xy;
-        color = mix(color, uAqua, softDisc(distance(disc, vec2(0.08, -0.16)), uBloomRadius, BLUR) * uBloomOpacity);
+        color = mix(color, uBloom, softDisc(distance(disc, vec2(0.08, -0.16)), uBloomRadius, BLUR) * uBloomOpacity);
         color = mix(color, vec3(1.0), softDisc(distance(disc, vec2(0.16, -0.24)), uCoreRadius, BLUR) * 0.7);
 
         // "Thinking" glow pulse.
@@ -146,8 +153,8 @@ export function createBloomMaterial(): ShaderMaterial {
         vertexShader,
         fragmentShader,
         uniforms: {
-            uBase: { value: srgb(PALETTE.peri) },
-            uAqua: { value: srgb(PALETTE.aqua) },
+            uBase: { value: srgb(PALETTE.rose) },
+            uBloom: { value: srgb(PALETTE.gold) },
             uBlobAt: { value: BLOBS.map((blob) => blob.at) },
             uBlobColor: { value: BLOBS.map((blob) => srgb(blob.color)) },
             uBlobRadius: { value: BLOBS.map((blob) => blob.radius) },
@@ -184,8 +191,8 @@ export function setBloomTheme(material: ShaderMaterial, light: boolean) {
     material.uniforms.uLight.value = light ? 1 : 0;
 }
 
-/** The halo per theme: a lavender glow on dark, a softer indigo one on light. */
+/** The halo per theme: a soft blush glow on dark, a softer deep coral one on light. */
 export const HALO = {
-    dark: { color: PALETTE.lavender, opacity: 0.45 },
-    light: { color: PALETTE.indigo, opacity: 0.2 },
+    dark: { color: PALETTE.blush, opacity: 0.45 },
+    light: { color: PALETTE.deepCoral, opacity: 0.2 },
 };
