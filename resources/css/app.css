@@ -52,7 +52,7 @@
     --color-muted: var(--theme-muted);
     /* A step dimmer than muted (nav numbers, placeholders), still AA. */
     --color-faint: var(--theme-faint);
-    /* The orb's magenta pink: links, status text, focus ring, the active nav dot. */
+    /* The orb's coral rose (a reddish pink): links, status text, focus ring, the active nav dot. */
     --color-accent: var(--theme-accent);
     /* Hairline borders around cards and images. */
     --color-line: var(--theme-line);
@@ -69,7 +69,7 @@
     --theme-foreground: #f2f0eb;
     --theme-muted: #8a8780; /* 5.4:1 */
     --theme-faint: #7e7b75; /* 4.6:1 */
-    --theme-accent: #e278dd; /* 7.3:1 */
+    --theme-accent: #e8677a; /* 6.1:1 */
     --theme-line: rgb(255 255 255 / 0.08);
     --theme-field: #696867; /* 3.5:1 */
     --theme-bar: rgb(14 14 15 / 0.7);
@@ -88,7 +88,7 @@
     --theme-foreground: #121212;
     --theme-muted: #5f5c56; /* 5.9:1 */
     --theme-faint: #6b6862; /* 4.9:1 */
-    --theme-accent: #a3369f; /* 5.2:1, a deeper pink to hold contrast on light */
+    --theme-accent: #b83a4c; /* 5.0:1, a deeper rose to hold contrast on light */
     --theme-line: rgb(18 18 18 / 0.1);
     --theme-field: #85837e; /* 3.4:1 */
     --theme-bar: rgb(243 241 236 / 0.72);
