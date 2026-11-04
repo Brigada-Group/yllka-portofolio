@@ -44,7 +44,7 @@ function dismissHint() {
 }
 
 /**
- * The hero's layer around the orb: a soft violet glow behind it that also
+ * The hero's layer around the orb: a soft coral glow behind it that also
  * lights the nearest letters of the name, and (with a mouse) a handle to
  * hop it on hover, drag it, and throw it. A thrown orb falls, bounces off the
  * bottom of the hero, rolls, and goes back onto the ı.
