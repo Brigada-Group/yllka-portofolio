@@ -55,6 +55,65 @@ html {
     color: var(--color-background);
 }
 
+/* Keyboard focus: a thin accent ring, everywhere. */
+:focus-visible {
+    outline: 1px solid var(--color-accent);
+    outline-offset: 4px;
+}
+
+/*
+ * Nav label roll (see resources/js/components/site-header.tsx): on hover the
+ * label slides up and out as a copy slides in from below.
+ */
+.nav-roll {
+    display: inline-grid;
+    overflow: hidden;
+    vertical-align: top;
+}
+
+.nav-roll > * {
+    grid-area: 1 / 1;
+    transition: translate 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nav-roll > :last-child {
+    translate: 0 100%;
+}
+
+.nav-link:hover .nav-roll > :first-child {
+    translate: 0 -100%;
+}
+
+.nav-link:hover .nav-roll > :last-child {
+    translate: 0 0;
+}
+
+/* The mobile menu fades in. */
+.nav-menu {
+    animation: nav-menu-in 250ms ease-out;
+}
+
+@keyframes nav-menu-in {
+    from {
+        opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nav-roll > * {
+        transition: none;
+        translate: none !important;
+    }
+
+    .nav-roll > :last-child {
+        visibility: hidden;
+    }
+
+    .nav-menu {
+        animation: none;
+    }
+}
+
 /* Film grain over the whole page. Static, so it costs nothing per frame. */
 .grain {
     position: fixed;

@@ -1,26 +1,17 @@
-import { Link, usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import SiteFooter from '@/components/site-footer';
-import SiteNav from '@/components/site-nav';
+import SiteHeader from '@/components/site-header';
 import { SmoothScroll } from '@/lib/smooth-scroll';
-import { home } from '@/routes';
 
 export default function PublicLayout({ children }: { children: ReactNode }) {
-    const { site } = usePage().props;
-
     return (
         <SmoothScroll>
             <div aria-hidden className="grain" />
             {/* Content stacks above the fixed orb canvas (z-0). */}
             <div className="relative z-10 flex min-h-screen flex-col">
-                <header>
-                    <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-6 px-4 py-6 md:px-8">
-                        <Link href={home()} className="whitespace-nowrap">
-                            {site.name}
-                        </Link>
-                        <SiteNav />
-                    </div>
-                </header>
+                <SiteHeader />
+                {/* Room for the fixed header (h-20), so the page starts below it. */}
+                <div aria-hidden="true" className="h-20 shrink-0" />
 
                 <main className="flex-1">{children}</main>
 
