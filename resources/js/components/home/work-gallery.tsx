@@ -11,10 +11,8 @@ const FRAMES = ['aspect-[4/5]', 'aspect-[16/10]', 'aspect-square'];
 const OFFSETS = ['md:mt-0', 'md:mt-[6vw]', 'md:mt-[2.5vw]'];
 
 /**
- * (01) Selected Work. On desktop the orb path pins this section, slides the
- * row, and rolls the orb along the track under it; the cards nearest the orb
- * come into focus. On small screens the row scrolls sideways and the orb
- * rolls along with it.
+ * (01) Selected Work. The orb drops in and lands as the full stop after the
+ * heading, as in the other sections. The row of cards scrolls sideways.
  */
 export default function WorkGallery({ items }: { items: ProjectSummary[] }) {
     return (
@@ -23,24 +21,27 @@ export default function WorkGallery({ items }: { items: ProjectSummary[] }) {
             aria-labelledby="work-title"
             className="pt-24 pb-10 md:pt-16 md:pb-8"
         >
-            <div
-                data-orb-stop="work"
-                data-orb-mode="horizontal"
-                data-orb-side="right"
-                className="mx-auto max-w-[1600px] px-4 md:px-8"
-            >
+            <div className="mx-auto max-w-[1600px] px-4 md:px-8">
                 <div className="grid grid-cols-12 gap-x-6">
                     <div className="col-span-12 flex items-end justify-between gap-6 md:col-span-10 md:col-start-3">
                         <div>
                             <SectionLabel index={1}>Selected Work</SectionLabel>
-                            <RevealText
-                                as="h2"
-                                className="mt-3 text-[clamp(2.25rem,1.4rem+2.6vw,4.5rem)] leading-[0.95] tracking-[-0.03em]"
-                            >
-                                <span id="work-title">
-                                    Selected <Emphasis text="*work*" />
-                                </span>
-                            </RevealText>
+                            {/* The orb stop: it lands as the full stop after the heading. */}
+                            <div data-orb-stop="work">
+                                <RevealText
+                                    as="h2"
+                                    className="mt-3 text-[clamp(2.25rem,1.4rem+2.6vw,4.5rem)] leading-[0.95] tracking-[-0.03em]"
+                                >
+                                    <span id="work-title">
+                                        Selected <Emphasis text="*work*" />
+                                        <span
+                                            data-orb-slot
+                                            aria-hidden="true"
+                                            className="ml-[0.05em] inline-block size-[0.16em]"
+                                        />
+                                    </span>
+                                </RevealText>
+                            </div>
                         </div>
                         <p className="hidden font-mono text-label text-muted uppercase md:block">
                             {String(items.length).padStart(2, '0')} projects
@@ -48,14 +49,8 @@ export default function WorkGallery({ items }: { items: ProjectSummary[] }) {
                     </div>
                 </div>
 
-                <div
-                    data-orb-viewport
-                    className="mt-8 snap-x overflow-x-auto md:mt-10"
-                >
-                    <ul
-                        data-orb-row
-                        className="flex w-max items-start gap-[6vw] md:gap-[4vw]"
-                    >
+                <div className="mt-8 snap-x overflow-x-auto md:mt-10">
+                    <ul className="flex w-max items-start gap-[6vw] md:gap-[4vw]">
                         {items.map((project, index) => (
                             <li
                                 key={project.id}
@@ -63,7 +58,6 @@ export default function WorkGallery({ items }: { items: ProjectSummary[] }) {
                             >
                                 <Link
                                     href={projects.show(project.slug)}
-                                    data-orb-item
                                     className="group block w-[75vw] md:w-[32vw]"
                                 >
                                     <div
@@ -121,13 +115,6 @@ export default function WorkGallery({ items }: { items: ProjectSummary[] }) {
                         </li>
                     </ul>
                 </div>
-
-                {/* The track the orb rolls along. It stops short of the edge, so the orb can roll off its end. */}
-                <div
-                    data-orb-lane
-                    aria-hidden="true"
-                    className="mt-6 mr-14 md:mt-8 md:mr-24"
-                />
             </div>
         </section>
     );
