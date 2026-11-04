@@ -98,10 +98,3 @@ html {
 [data-orb-item] [data-focus-text] {
     opacity: calc(0.75 + 0.25 * var(--orb-focus, 1));
 }
-
-/* The custom cursor replaces the pointer over elements that set data-cursor. */
-@media (hover: hover) and (pointer: fine) {
-    [data-cursor] {
-        cursor: none;
-    }
-}

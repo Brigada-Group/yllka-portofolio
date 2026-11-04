@@ -1,7 +1,6 @@
 import { Link } from '@inertiajs/react';
 import Container from '@/components/container';
 import { plainText } from '@/components/emphasis';
-import ProjectCover from '@/components/project-cover';
 import RichText from '@/components/rich-text';
 import Seo from '@/components/seo';
 import projects from '@/routes/projects';
@@ -92,14 +91,6 @@ export default function ProjectShow({ project }: { project: Project }) {
                         </ul>
                     )}
                 </header>
-
-                <div className="aspect-[16/9] overflow-hidden rounded-[7px] border border-white/[0.08]">
-                    <ProjectCover
-                        slug={project.slug}
-                        title={project.title}
-                        src={project.cover_image_url}
-                    />
-                </div>
 
                 {sections.map(
                     (section) =>

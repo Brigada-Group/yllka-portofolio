@@ -64,7 +64,6 @@ export default function WorkGallery({ items }: { items: ProjectSummary[] }) {
                                 <Link
                                     href={projects.show(project.slug)}
                                     data-orb-item
-                                    data-cursor="View case"
                                     className="group block w-[75vw] md:w-[32vw]"
                                 >
                                     <div
