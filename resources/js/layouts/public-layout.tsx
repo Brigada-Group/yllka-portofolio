@@ -2,16 +2,9 @@ import { Link, usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import CustomCursor from '@/components/custom-cursor';
 import SiteFooter from '@/components/site-footer';
+import SiteNav from '@/components/site-nav';
 import { SmoothScroll } from '@/lib/smooth-scroll';
-import { about, contact, home } from '@/routes';
-import projects from '@/routes/projects';
-
-const navItems = [
-    { label: 'Home', href: home() },
-    { label: 'Projects', href: projects.index() },
-    { label: 'About', href: about() },
-    { label: 'Contact', href: contact() },
-];
+import { home } from '@/routes';
 
 export default function PublicLayout({ children }: { children: ReactNode }) {
     const { site } = usePage().props;
@@ -27,17 +20,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                         <Link href={home()} className="whitespace-nowrap">
                             {site.name}
                         </Link>
-                        <nav>
-                            <ul className="flex gap-3 text-sm md:gap-4 md:text-base">
-                                {navItems.map((item) => (
-                                    <li key={item.label}>
-                                        <Link href={item.href}>
-                                            {item.label}
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
-                        </nav>
+                        <SiteNav />
                     </div>
                 </header>
 
