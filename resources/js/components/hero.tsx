@@ -8,9 +8,6 @@ import LiveTime from '@/components/live-time';
 import { usePrefersReducedMotion } from '@/hooks/use-media-query';
 import type { ProjectSummary } from '@/types';
 
-/** The year this portfolio started. */
-const SINCE = 2024;
-
 /** "(Scroll)" over a hairline with a light running down it. */
 function ScrollCue() {
     return (
@@ -40,12 +37,7 @@ export default function Hero({ latest }: { latest: ProjectSummary | null }) {
             <HeroOrb hero={section} name={name} reducedMotion={reducedMotion} />
 
             <div className="relative flex justify-between gap-6 pt-6 font-mono text-label text-muted uppercase">
-                <div>
-                    <p>({site.role})</p>
-                    <p className="mt-1 whitespace-nowrap">
-                        Portfolio — {SINCE} / {new Date().getFullYear()}
-                    </p>
-                </div>
+                <p>({site.role})</p>
                 {site.education && (
                     <p className="max-w-[50%] text-right">{site.education}</p>
                 )}
