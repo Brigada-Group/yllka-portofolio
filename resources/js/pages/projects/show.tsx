@@ -29,7 +29,12 @@ export default function ProjectShow({ project }: { project: Project }) {
                 />
 
                 <header className="space-y-4">
-                    <Link href={projects.index()}>← All projects</Link>
+                    <Link
+                        href={projects.index()}
+                        className="inline-flex min-h-6 items-center"
+                    >
+                        <span aria-hidden="true">←&nbsp;</span>All projects
+                    </Link>
                     <h1>{plainText(project.title)}</h1>
                     <p>{project.short_description}</p>
                     {project.context && (
@@ -102,15 +107,18 @@ export default function ProjectShow({ project }: { project: Project }) {
                         ),
                 )}
 
-                {project.gallery_urls.length > 0 && (
+                {project.gallery_images.length > 0 && (
                     <section className="space-y-4">
                         <h2>Gallery</h2>
                         <div className="grid gap-4 sm:grid-cols-2">
-                            {project.gallery_urls.map((url, index) => (
+                            {project.gallery_images.map((image, index) => (
                                 <img
-                                    key={url}
-                                    src={url}
-                                    alt={`${project.title}, image ${index + 1}`}
+                                    key={image.url}
+                                    src={image.url}
+                                    alt={
+                                        image.alt ??
+                                        `${plainText(project.title)}, image ${index + 1}`
+                                    }
                                     className="w-full"
                                     loading="lazy"
                                 />

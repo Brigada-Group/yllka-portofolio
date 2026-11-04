@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { prefersReducedMotion } from '@/lib/motion';
 
 export type Theme = 'dark' | 'light';
 
@@ -56,9 +57,7 @@ function applyTheme(theme: Theme) {
  * `origin` (the toggle); otherwise it switches at once.
  */
 export function setTheme(theme: Theme, origin?: { x: number; y: number }) {
-    const reducedMotion = window.matchMedia(
-        '(prefers-reduced-motion: reduce)',
-    ).matches;
+    const reducedMotion = prefersReducedMotion();
 
     if (!document.startViewTransition || reducedMotion || !origin) {
         applyTheme(theme);

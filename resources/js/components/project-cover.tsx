@@ -50,18 +50,21 @@ export default function ProjectCover({
     slug,
     title,
     src,
+    alt = '',
     className = '',
 }: {
     slug: string;
     title: string;
     src: string | null;
+    /** Empty (decorative) unless the cover shows something the title doesn't. */
+    alt?: string | null;
     className?: string;
 }) {
     if (src) {
         return (
             <img
                 src={src}
-                alt=""
+                alt={alt ?? ''}
                 loading="lazy"
                 className={`size-full object-cover ${className}`}
             />

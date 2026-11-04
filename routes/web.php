@@ -17,3 +17,5 @@ Route::get('contact', [ContactController::class, 'show'])->name('contact');
 Route::post('contact', [ContactController::class, 'store'])
     ->middleware('throttle:contact')
     ->name('contact.store');
+
+Route::inertia('accessibility', 'accessibility')->name('accessibility');

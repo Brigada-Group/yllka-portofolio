@@ -57,7 +57,7 @@ function ThemeToggle({ className = '' }: { className?: string }) {
                     y: box.top + box.height / 2,
                 });
             }}
-            className={`nav-link inline-flex items-center gap-2 font-mono text-[12px] tracking-[0.06em] text-muted uppercase transition-colors duration-300 hover:text-foreground ${className}`}
+            className={`nav-link inline-flex min-h-6 items-center gap-2 font-mono text-[12px] tracking-[0.06em] text-muted uppercase transition-colors duration-300 hover:text-foreground ${className}`}
         >
             {/* A circle, half filled. */}
             <svg
@@ -170,14 +170,14 @@ function MobileMenu({ onClose, name }: { onClose: () => void; name: string }) {
                     <Link
                         href={home()}
                         onClick={onClose}
-                        className="text-[15px] font-medium text-foreground"
+                        className="inline-flex min-h-6 items-center text-[15px] font-medium text-foreground"
                     >
                         {name}
                     </Link>
                     <button
                         type="button"
                         onClick={onClose}
-                        className="font-mono text-[12px] tracking-[0.06em] text-muted uppercase transition-colors hover:text-foreground"
+                        className="inline-flex min-h-6 items-center font-mono text-[12px] tracking-[0.06em] text-muted uppercase transition-colors hover:text-foreground"
                     >
                         Close
                     </button>
@@ -258,7 +258,7 @@ export default function SiteHeader() {
             <div className={`${CONTAINER} ${BAR}`}>
                 <Link
                     href={home()}
-                    className="text-[15px] font-medium whitespace-nowrap text-foreground"
+                    className="inline-flex min-h-6 items-center text-[15px] font-medium whitespace-nowrap text-foreground"
                 >
                     {site.name}
                 </Link>
@@ -279,7 +279,7 @@ export default function SiteHeader() {
                                             onClick={(event) =>
                                                 jump(event, item.section)
                                             }
-                                            className="nav-link relative block font-mono text-[12px] tracking-[0.06em] text-muted uppercase transition-colors duration-300 hover:text-foreground aria-[current=page]:text-foreground"
+                                            className="nav-link relative flex min-h-6 items-center font-mono text-[12px] tracking-[0.06em] text-muted uppercase transition-colors duration-300 hover:text-foreground aria-[current=page]:text-foreground"
                                         >
                                             {current && (
                                                 <span
@@ -311,7 +311,7 @@ export default function SiteHeader() {
                     aria-expanded={menuOpen}
                     aria-controls="site-menu"
                     onClick={() => setMenuOpen(true)}
-                    className="font-mono text-[12px] tracking-[0.06em] text-muted uppercase transition-colors hover:text-foreground md:hidden"
+                    className="inline-flex min-h-6 items-center font-mono text-[12px] tracking-[0.06em] text-muted uppercase transition-colors hover:text-foreground md:hidden"
                 >
                     Menu
                 </button>

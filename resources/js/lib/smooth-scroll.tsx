@@ -2,7 +2,7 @@ import { router } from '@inertiajs/react';
 import Lenis from 'lenis';
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { usePrefersReducedMotion } from '@/hooks/use-media-query';
+import { useReducedMotion } from '@/lib/motion';
 import { gsap, ScrollTrigger } from '@/lib/gsap';
 
 const LenisContext = createContext<Lenis | null>(null);
@@ -21,7 +21,7 @@ export function useLenis(): Lenis | null {
  * ScrollTrigger update in the same frame.
  */
 export function SmoothScroll({ children }: { children: ReactNode }) {
-    const reducedMotion = usePrefersReducedMotion();
+    const reducedMotion = useReducedMotion();
     const [lenis, setLenis] = useState<Lenis | null>(null);
 
     useEffect(() => {

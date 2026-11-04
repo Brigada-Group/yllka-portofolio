@@ -28,6 +28,13 @@ const PAGE_SECTIONS: Record<string, NavSection> = {
     contact: 'contact',
 };
 
+/**
+ * Set while a nav link is taking the visitor from another page to a home
+ * section, so the layout's page-change focus (on the h1) doesn't override the
+ * focus the jump puts on that section.
+ */
+export const navJumpState = { pending: false };
+
 /** Share of the viewport from the top that a section must reach to count as current. */
 const ACTIVE_LINE = 0.4;
 
@@ -106,6 +113,14 @@ export function useNavJump() {
         }
 
         window.history.replaceState(window.history.state, '', `#${section}`);
+
+        // Move keyboard focus with the jump, so Tab continues from the section.
+        if (!target.hasAttribute('tabindex')) {
+            target.tabIndex = -1;
+        }
+
+        target.focus({ preventScroll: true });
+        navJumpState.pending = false;
     };
 
     /** Returns false when the click was left to the browser (new tab, new window). */
@@ -148,6 +163,7 @@ export function useNavJump() {
             setTimeout(go, 300);
         });
 
+        navJumpState.pending = true;
         router.visit(home().url);
 
         return true;

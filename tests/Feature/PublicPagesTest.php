@@ -48,7 +48,7 @@ test('project page shows a published case study', function () {
             ->component('projects/show')
             ->where('project.title', 'Booking Flow Redesign')
             ->has('project.problem')
-            ->has('project.gallery_urls'));
+            ->has('project.gallery_images'));
 });
 
 test('unpublished and missing projects return 404', function () {
@@ -99,4 +99,21 @@ test('case study sections cleared in the editor are stored as empty', function (
         ->process->toBeNull()
         ->solution->toBeNull()
         ->outcome->toBe('<p>Shipped it.</p>');
+});
+
+test('accessibility statement page renders', function () {
+    $this->get('/accessibility')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('accessibility'));
+});
+
+test('gallery images keep their alt text', function () {
+    $project = Project::factory()->create([
+        'gallery' => [['image' => 'projects/gallery/a.png', 'alt' => 'The booking calendar']],
+    ]);
+
+    $this->get("/projects/{$project->slug}")
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('project.gallery_images.0.alt', 'The booking calendar'));
 });

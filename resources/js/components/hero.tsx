@@ -1,11 +1,11 @@
 import { usePage } from '@inertiajs/react';
 import { useRef } from 'react';
-import Emphasis, { plainText } from '@/components/emphasis';
+import Emphasis from '@/components/emphasis';
 import HeroName from '@/components/hero-name';
 import HeroOrb from '@/components/hero-orb';
 import LatestWork from '@/components/latest-work';
 import LiveTime from '@/components/live-time';
-import { usePrefersReducedMotion } from '@/hooks/use-media-query';
+import { useReducedMotion } from '@/lib/motion';
 import type { ProjectSummary } from '@/types';
 
 /** "(Scroll)" over a hairline with a light running down it. */
@@ -25,7 +25,7 @@ export default function Hero({ latest }: { latest: ProjectSummary | null }) {
     const { site } = usePage().props;
     const section = useRef<HTMLElement>(null);
     const name = useRef<HTMLSpanElement>(null);
-    const reducedMotion = usePrefersReducedMotion();
+    const reducedMotion = useReducedMotion();
 
     return (
         <section
@@ -54,21 +54,24 @@ export default function Hero({ latest }: { latest: ProjectSummary | null }) {
                 data-orb-depart="0"
                 className="relative mt-auto pt-16"
             >
+                {/*
+                  The h1 reads as the plain name: the visible letters are split
+                  into spans (for the weight effect) and end in a dotless ı,
+                  so they are hidden from assistive tech.
+                */}
                 <h1 id="hero-title">
-                    <span className="sr-only">
-                        {site.name}. {plainText(site.headline)}
-                    </span>
+                    <span className="sr-only">{site.name}</span>
                     <span aria-hidden="true">
                         <HeroName
                             name={site.name}
                             nameRef={name}
                             weightEffect={!reducedMotion}
                         />
-                        <span className="mt-4 block max-w-[19em] text-lede md:mt-6">
-                            <Emphasis text={site.headline} />
-                        </span>
                     </span>
                 </h1>
+                <p className="mt-4 max-w-[19em] text-lede md:mt-6">
+                    <Emphasis text={site.headline} />
+                </p>
             </div>
 
             <div className="relative mt-12 flex items-end justify-between gap-6 md:mt-[6vh]">

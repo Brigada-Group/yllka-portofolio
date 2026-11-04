@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import type { ElementType, ReactNode } from 'react';
-import { usePrefersReducedMotion } from '@/hooks/use-media-query';
+import { useReducedMotion } from '@/lib/motion';
 import { gsap, SplitText, useGSAP } from '@/lib/gsap';
 
 type RevealTextProps = {
@@ -20,7 +20,7 @@ export default function RevealText({
     children,
 }: RevealTextProps) {
     const element = useRef<HTMLElement>(null);
-    const reducedMotion = usePrefersReducedMotion();
+    const reducedMotion = useReducedMotion();
 
     useGSAP(
         () => {

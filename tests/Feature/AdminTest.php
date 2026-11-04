@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Project;
 use App\Models\User;
 use Database\Seeders\AdminUserSeeder;
 
@@ -36,4 +37,17 @@ test('admin seeder creates the user from env config', function () {
     $this->seed(AdminUserSeeder::class);
 
     expect(User::sole()->email)->toBe('me@example.com');
+});
+
+test('the project edit page loads with gallery alt text', function () {
+    $project = Project::factory()->create([
+        'cover_image_alt' => 'A phone showing the booking flow',
+        'gallery' => [['image' => 'projects/gallery/a.png', 'alt' => 'The booking calendar']],
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->get("/admin/projects/{$project->id}/edit")
+        ->assertOk()
+        ->assertSee('Cover alt text')
+        ->assertSee('The booking calendar');
 });

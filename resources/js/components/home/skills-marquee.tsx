@@ -1,8 +1,8 @@
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import SectionLabel from '@/components/section-label';
 import RevealText from '@/components/reveal-text';
 import Emphasis from '@/components/emphasis';
-import { usePrefersReducedMotion } from '@/hooks/use-media-query';
+import { useReducedMotion } from '@/lib/motion';
 import { gsap, useGSAP } from '@/lib/gsap';
 import { useLenis } from '@/lib/smooth-scroll';
 import type { Skill } from '@/types';
@@ -25,11 +25,24 @@ function rows(skills: Skill[], count: number): Skill[][] {
  * (03) Skills: rows of skill names at huge size, alternating sans and italic
  * serif, looping in opposite directions. Scrolling speeds them up (and
  * flips them with the scroll direction); hovering a row pauses it.
+ *
+ * Moving for more than five seconds, so (WCAG 2.2.2) a button pauses and
+ * plays them, and they also pause while keyboard focus is in the section.
+ * Screen readers get a plain list; the rows are decoration. Still with
+ * reduced motion.
  */
 export default function SkillsMarquee({ skills }: { skills: Skill[] }) {
     const container = useRef<HTMLDivElement>(null);
-    const reducedMotion = usePrefersReducedMotion();
+    const reducedMotion = useReducedMotion();
     const lenis = useLenis();
+    const [paused, setPaused] = useState(false);
+    const [focusInside, setFocusInside] = useState(false);
+    // Read by the ticker; eased so pausing and playing don't jerk.
+    const running = useRef({ target: 1, value: 1 });
+
+    useEffect(() => {
+        running.current.target = paused || focusInside ? 0 : 1;
+    }, [paused, focusInside]);
 
     useGSAP(
         () => {
@@ -80,7 +93,11 @@ export default function SkillsMarquee({ skills }: { skills: Skill[] }) {
                 };
             });
 
-            const tick = () => {
+            const tick = (_time: number, deltaMs: number) => {
+                const run = running.current;
+                run.value +=
+                    (run.target - run.value) *
+                    (1 - Math.exp(-8 * (deltaMs / 1000)));
                 const velocity = lenis?.velocity ?? 0;
 
                 if (Math.abs(velocity) > 0.5) {
@@ -91,7 +108,9 @@ export default function SkillsMarquee({ skills }: { skills: Skill[] }) {
                     1 +
                     Math.min(Math.abs(velocity) * VELOCITY_BOOST, MAX_BOOST);
                 loops.forEach((loop, index) =>
-                    loop.timeScale(direction * boost * hover[index].value),
+                    loop.timeScale(
+                        direction * boost * hover[index].value * run.value,
+                    ),
                 );
             };
             gsap.ticker.add(tick);
@@ -113,6 +132,12 @@ export default function SkillsMarquee({ skills }: { skills: Skill[] }) {
             id="skills"
             aria-labelledby="skills-title"
             className="py-24 md:py-40"
+            onFocus={() => setFocusInside(true)}
+            onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) {
+                    setFocusInside(false);
+                }
+            }}
         >
             <div className="mx-auto max-w-[1600px] px-4 md:px-8">
                 <div className="grid grid-cols-12 gap-x-6">
@@ -138,6 +163,20 @@ export default function SkillsMarquee({ skills }: { skills: Skill[] }) {
                 </div>
             </div>
 
+            {!reducedMotion && (
+                <div className="mx-auto mt-10 flex max-w-[1600px] justify-end px-4 md:px-8">
+                    <button
+                        type="button"
+                        onClick={() => setPaused((value) => !value)}
+                        className="inline-flex min-h-6 items-center gap-2 font-mono text-[12px] tracking-[0.06em] text-muted uppercase transition-colors hover:text-foreground"
+                    >
+                        <span aria-hidden="true">{paused ? '▶' : '❚❚'}</span>
+                        {paused ? 'Play' : 'Pause'}
+                        <span className="sr-only"> the moving skills</span>
+                    </button>
+                </div>
+            )}
+
             {/* Screen readers get the plain list; the moving rows are decoration. */}
             <ul className="sr-only">
                 {skills.map((skill) => (
@@ -149,7 +188,7 @@ export default function SkillsMarquee({ skills }: { skills: Skill[] }) {
             <div
                 ref={container}
                 aria-hidden="true"
-                className="mx-auto mt-12 max-w-[1600px] px-4 md:mt-16 md:px-8"
+                className="mx-auto mt-6 max-w-[1600px] px-4 md:mt-8 md:px-8"
             >
                 <div className="space-y-2 overflow-hidden">
                     {rows(skills, 3).map((row, rowIndex) => (

@@ -5,12 +5,14 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#0e0e0f">
 
-        {{-- Theme before first paint: dark unless the visitor chose light (see resources/js/lib/theme.ts). --}}
+        {{-- Theme and motion choices before first paint: dark unless the visitor chose light (see resources/js/lib/theme.ts). --}}
         <script>
             (function () {
                 var theme = 'dark';
                 try { if (localStorage.getItem('theme') === 'light') theme = 'light'; } catch (e) {}
                 document.documentElement.dataset.theme = theme;
+                // The site's own "Reduce motion" toggle (see resources/js/lib/motion.ts).
+                try { if (localStorage.getItem('motion') === 'reduce') document.documentElement.dataset.motion = 'reduce'; } catch (e) {}
                 if (theme === 'light') document.querySelector('meta[name="theme-color"]').setAttribute('content', '#f3f1ec');
             })();
         </script>

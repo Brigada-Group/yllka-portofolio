@@ -34,11 +34,14 @@ export default function LatestWork({
             </div>
 
             <div className="font-mono text-label uppercase">
-                <p className="text-muted">Latest work</p>
+                <p className="text-muted">
+                    Latest work<span className="sr-only">:</span>
+                </p>
                 <p className="mt-2 text-foreground">
                     {plainText(project.title)}
                 </p>
                 {project.role && <p className="text-muted">{project.role}</p>}
+                <span className="sr-only">, case study</span>
                 <span
                     aria-hidden="true"
                     className="mt-2 inline-block text-base text-foreground transition-transform duration-300 motion-safe:group-hover:translate-x-1.5"

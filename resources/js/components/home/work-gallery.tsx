@@ -67,12 +67,16 @@ export default function WorkGallery({ items }: { items: ProjectSummary[] }) {
                                             slug={project.slug}
                                             title={project.title}
                                             src={project.cover_image_url}
-                                            className="transition-transform duration-[1200ms] ease-[cubic-bezier(0.2,0.8,0.2,1)] group-hover:scale-[1.04]"
+                                            alt={project.cover_image_alt}
+                                            className="transition-transform duration-[1200ms] ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-safe:group-hover:scale-[1.04]"
                                         />
                                     </div>
 
                                     <div data-focus-text className="mt-4">
-                                        <span className="block font-display text-[3rem] leading-none text-muted italic">
+                                        <span
+                                            aria-hidden="true"
+                                            className="block font-display text-[3rem] leading-none text-muted italic"
+                                        >
                                             {String(index + 1).padStart(2, '0')}
                                         </span>
                                         <h3 className="mt-2 text-[clamp(1.5rem,1.2rem+0.6vw,2rem)] leading-[1.05] tracking-[-0.02em]">
@@ -108,7 +112,10 @@ export default function WorkGallery({ items }: { items: ProjectSummary[] }) {
                                 className="group text-[clamp(2rem,1.2rem+2.4vw,4rem)] leading-[0.95] tracking-[-0.03em]"
                             >
                                 All <Emphasis text="*projects*" />{' '}
-                                <span className="inline-block transition-transform group-hover:translate-x-2">
+                                <span
+                                    aria-hidden="true"
+                                    className="inline-block transition-transform motion-safe:group-hover:translate-x-2"
+                                >
                                     →
                                 </span>
                             </Link>

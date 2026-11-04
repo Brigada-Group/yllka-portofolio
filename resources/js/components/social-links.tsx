@@ -9,8 +9,10 @@ const labels = {
 
 export default function SocialLinks({
     className = 'flex gap-4',
+    linkClassName = 'transition-colors hover:text-foreground',
 }: {
     className?: string;
+    linkClassName?: string;
 }) {
     const { site } = usePage().props;
     const links = (Object.keys(labels) as (keyof typeof labels)[]).filter(
@@ -29,9 +31,10 @@ export default function SocialLinks({
                         href={site.social[key]!}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="transition-colors hover:text-foreground"
+                        className={linkClassName}
                     >
                         {labels[key]}
+                        <span className="sr-only"> (opens in a new tab)</span>
                     </a>
                 </li>
             ))}

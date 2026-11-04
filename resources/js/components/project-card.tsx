@@ -16,14 +16,15 @@ export default function ProjectCard({ project }: { project: ProjectSummary }) {
                         slug={project.slug}
                         title={project.title}
                         src={project.cover_image_url}
+                        alt={project.cover_image_alt}
                     />
                 </div>
-                <h3 className="text-title">
+                <h2 className="text-title">
                     <span className="sr-only">{plainText(project.title)}</span>
                     <span aria-hidden="true">
                         <Emphasis text={emphasizeTitle(project.title)} />
                     </span>
-                </h3>
+                </h2>
                 <p className="text-foreground/80">
                     {project.short_description}
                 </p>

@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Projects\Schemas;
 
 use App\Models\Project;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\Textarea;
@@ -79,6 +80,10 @@ class ProjectForm
                             ->disk('public')
                             ->directory('projects/covers')
                             ->maxSize(4096),
+                        TextInput::make('cover_image_alt')
+                            ->label('Cover alt text')
+                            ->maxLength(255)
+                            ->helperText('What the cover shows, for screen readers. Leave empty if it is decorative (the title already names the project).'),
                     ]),
 
                 Section::make('Case study')
@@ -93,16 +98,24 @@ class ProjectForm
                 Section::make('Gallery')
                     ->columnSpanFull()
                     ->schema([
-                        FileUpload::make('gallery')
+                        Repeater::make('gallery')
                             ->hiddenLabel()
-                            ->image()
-                            ->multiple()
+                            ->addActionLabel('Add image')
                             ->reorderable()
-                            ->appendFiles()
-                            ->panelLayout('grid')
-                            ->disk('public')
-                            ->directory('projects/gallery')
-                            ->maxSize(4096),
+                            ->grid(2)
+                            ->schema([
+                                FileUpload::make('image')
+                                    ->image()
+                                    ->required()
+                                    ->disk('public')
+                                    ->directory('projects/gallery')
+                                    ->maxSize(4096),
+                                TextInput::make('alt')
+                                    ->label('Alt text')
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->helperText('Describe what the image shows, for screen readers.'),
+                            ]),
                     ]),
 
                 Section::make('Links')

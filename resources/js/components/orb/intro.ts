@@ -1,3 +1,5 @@
+import { prefersReducedMotion } from '@/lib/motion';
+
 /**
  * The drop intro plays on every full page load of a page with the orb, but
  * not again when returning to it through client-side navigation. A reload
@@ -6,11 +8,7 @@
 let played = false;
 
 export function shouldPlayIntro(): boolean {
-    return (
-        typeof window !== 'undefined' &&
-        !played &&
-        !window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    );
+    return typeof window !== 'undefined' && !played && !prefersReducedMotion();
 }
 
 export function markIntroPlayed(): void {

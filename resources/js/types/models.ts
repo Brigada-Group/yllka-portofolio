@@ -23,8 +23,10 @@ export type Project = {
     outcome: string | null;
     cover_image: string | null;
     cover_image_url: string | null;
-    gallery: string[] | null;
-    gallery_urls: string[];
+    /** Describes the cover for screen readers; empty when it is decorative. */
+    cover_image_alt: string | null;
+    gallery: { image: string; alt: string | null }[] | null;
+    gallery_images: { url: string; alt: string | null }[];
     live_url: string | null;
     repo_url: string | null;
     figma_url: string | null;
@@ -49,6 +51,7 @@ export type ProjectSummary = Pick<
     | 'tools'
     | 'cover_image'
     | 'cover_image_url'
+    | 'cover_image_alt'
     | 'is_featured'
 >;
 

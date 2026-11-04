@@ -16,14 +16,14 @@ use Illuminate\Support\Str;
 
 /**
  * @property list<string>|null $tools
- * @property list<string>|null $gallery
+ * @property list<array{image: string, alt: string|null}>|null $gallery
  */
 #[Fillable([
     'title', 'slug', 'short_description', 'context', 'role', 'category', 'client', 'year', 'duration', 'tools',
-    'problem', 'process', 'solution', 'outcome', 'cover_image', 'gallery',
+    'problem', 'process', 'solution', 'outcome', 'cover_image', 'cover_image_alt', 'gallery',
     'live_url', 'repo_url', 'figma_url', 'is_featured', 'is_published', 'sort_order',
 ])]
-#[Appends(['cover_image_url', 'gallery_urls'])]
+#[Appends(['cover_image_url', 'gallery_images'])]
 class Project extends Model
 {
     /** @use HasFactory<ProjectFactory> */
@@ -96,12 +96,17 @@ class Project extends Model
     }
 
     /**
-     * @return Attribute<list<string>, never>
+     * Gallery images with their alt text, for the case study page.
+     *
+     * @return Attribute<list<array{url: string, alt: string|null}>, never>
      */
-    protected function galleryUrls(): Attribute
+    protected function galleryImages(): Attribute
     {
         return Attribute::get(fn () => array_map(
-            fn (string $path) => Storage::disk('public')->url($path),
+            fn (array $item) => [
+                'url' => Storage::disk('public')->url($item['image']),
+                'alt' => $item['alt'] ?? null,
+            ],
             $this->gallery ?? [],
         ));
     }

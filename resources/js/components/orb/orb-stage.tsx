@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { useIsMobile, usePrefersReducedMotion } from '@/hooks/use-media-query';
+import { useIsMobile } from '@/hooks/use-media-query';
+import { useReducedMotion } from '@/lib/motion';
 import { useTheme } from '@/lib/theme';
 import { shouldPlayIntro } from './intro';
 import { createOrbMotion } from './motion';
@@ -69,7 +70,7 @@ export default function OrbStage() {
     const [introEnabled] = useState(shouldPlayIntro);
     const [motion] = useState(() => createOrbMotion(introEnabled));
     const [ready, setReady] = useState(false);
-    const reducedMotion = usePrefersReducedMotion();
+    const reducedMotion = useReducedMotion();
     // Reduced motion: no pinning, and the orb stays in the hero.
     const path = useOrbPath({ pinning: !reducedMotion, still: reducedMotion });
     // The hero text is hidden while the intro is pending, so load straight away.

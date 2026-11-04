@@ -4,7 +4,7 @@ import Emphasis from '@/components/emphasis';
 import Languages from '@/components/languages';
 import RevealText from '@/components/reveal-text';
 import SectionLabel from '@/components/section-label';
-import { usePrefersReducedMotion } from '@/hooks/use-media-query';
+import { useReducedMotion } from '@/lib/motion';
 import { gsap, useGSAP } from '@/lib/gsap';
 import { about } from '@/routes';
 
@@ -16,7 +16,7 @@ import { about } from '@/routes';
 export default function AboutStatement() {
     const { site } = usePage().props;
     const statement = useRef<HTMLParagraphElement>(null);
-    const reducedMotion = usePrefersReducedMotion();
+    const reducedMotion = useReducedMotion();
     const words = site.bio.split(/\s+/).filter(Boolean);
 
     useGSAP(
@@ -89,9 +89,15 @@ export default function AboutStatement() {
                         </p>
 
                         <div className="mt-12 flex flex-wrap gap-x-8 gap-y-3 font-mono text-label uppercase">
-                            <Link href={about()} className="group">
-                                More about me{' '}
-                                <span className="inline-block transition-transform group-hover:translate-x-1">
+                            <Link
+                                href={about()}
+                                className="group inline-flex min-h-6 items-center gap-[0.5ch]"
+                            >
+                                More about me
+                                <span
+                                    aria-hidden="true"
+                                    className="inline-block transition-transform motion-safe:group-hover:translate-x-1"
+                                >
                                     →
                                 </span>
                             </Link>

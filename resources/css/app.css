@@ -45,6 +45,25 @@
  * text and labels 4.5:1, borders that identify a control and the focus
  * ring 3:1.
  */
+/* motion-safe: and motion-reduce: also follow the site's "Reduce motion" toggle. */
+@custom-variant motion-safe {
+    @media (prefers-reduced-motion: no-preference) {
+        :root:not([data-motion='reduce']) & {
+            @slot;
+        }
+    }
+}
+
+@custom-variant motion-reduce {
+    @media (prefers-reduced-motion: reduce) {
+        @slot;
+    }
+
+    [data-motion='reduce'] & {
+        @slot;
+    }
+}
+
 @theme inline {
     --color-background: var(--theme-background);
     --color-foreground: var(--theme-foreground);
@@ -127,6 +146,15 @@ html {
 }
 
 /*
+ * Except where focus is only moved for screen readers and keyboard users
+ * (the page's h1 after navigation, a section after a nav jump, main after the
+ * skip link): those aren't controls.
+ */
+[tabindex='-1']:focus-visible {
+    outline: none;
+}
+
+/*
  * Nav label roll (see resources/js/components/site-header.tsx): on hover the
  * label slides up and out as a copy slides in from below.
  */
@@ -164,7 +192,26 @@ html {
     }
 }
 
+/*
+ * Reduced motion, from the system setting or the site's "Reduce motion"
+ * toggle (<html data-motion="reduce">, see resources/js/lib/motion.ts).
+ */
 @media (prefers-reduced-motion: reduce) {
+    .nav-roll > * {
+        transition: none;
+        translate: none !important;
+    }
+
+    .nav-roll > :last-child {
+        visibility: hidden;
+    }
+
+    .nav-menu {
+        animation: none;
+    }
+}
+
+[data-motion='reduce'] {
     .nav-roll > * {
         transition: none;
         translate: none !important;
@@ -193,8 +240,9 @@ html {
 
 /*
  * About statement words light up as you scroll: --lit goes 0 → 1 (scrubbed
- * by GSAP), from dim muted to full text colour. Unlit (no script, reduced
- * motion) they show at full colour.
+ * by GSAP), from muted to full text colour. Even unlit, muted meets 4.5:1 in
+ * both themes. Without the effect (no script, reduced motion) they show at
+ * full colour.
  */
 .about-word {
     color: color-mix(
@@ -202,7 +250,6 @@ html {
         var(--color-foreground) calc(var(--lit, 1) * 100%),
         var(--color-muted)
     );
-    opacity: calc(0.35 + 0.65 * var(--lit, 1));
 }
 
 /* Film grain over the whole page. Static, so it costs nothing per frame. */
@@ -272,6 +319,10 @@ html {
     .scroll-cue::after {
         animation: none;
     }
+}
+
+[data-motion='reduce'] .scroll-cue::after {
+    animation: none;
 }
 
 /*
