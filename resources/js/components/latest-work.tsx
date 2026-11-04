@@ -1,6 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { plainText } from '@/components/emphasis';
-import { meshBackground } from '@/components/project-cover';
+import { meshStyle } from '@/components/project-cover';
 import projects from '@/routes/projects';
 import type { ProjectSummary } from '@/types';
 
@@ -17,7 +17,7 @@ export default function LatestWork({
             href={projects.show(project.slug)}
             className={`group items-end gap-4 ${className}`}
         >
-            <div className="aspect-[16/10] w-[180px] shrink-0 overflow-hidden rounded-[5px] border border-white/[0.08]">
+            <div className="aspect-[16/10] w-[180px] shrink-0 overflow-hidden rounded-[5px] border border-line">
                 {project.cover_image_url ? (
                     <img
                         src={project.cover_image_url}
@@ -27,10 +27,8 @@ export default function LatestWork({
                 ) : (
                     <div
                         aria-hidden="true"
-                        className="size-full transition-transform duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-safe:group-hover:scale-105"
-                        style={{
-                            backgroundImage: meshBackground(project.slug),
-                        }}
+                        className="mesh size-full transition-transform duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-safe:group-hover:scale-105"
+                        style={meshStyle(project.slug)}
                     />
                 )}
             </div>

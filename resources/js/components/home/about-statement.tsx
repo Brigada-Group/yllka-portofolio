@@ -25,12 +25,13 @@ export default function AboutStatement() {
                 return;
             }
 
+            // Scrub a 0–1 "lit" amount rather than the colours themselves, so
+            // the words keep following the theme's tokens (see .about-word).
             gsap.fromTo(
                 statement.current.querySelectorAll('[data-word]'),
-                { color: 'var(--color-muted)', opacity: 0.35 },
+                { '--lit': 0 },
                 {
-                    color: 'var(--color-foreground)',
-                    opacity: 1,
+                    '--lit': 1,
                     ease: 'none',
                     stagger: 0.1,
                     scrollTrigger: {
@@ -77,7 +78,11 @@ export default function AboutStatement() {
                     <div className="col-span-12 mt-10 md:col-span-10 md:col-start-3 md:mt-14">
                         <p ref={statement} className="text-statement">
                             {words.map((word, index) => (
-                                <span key={index} data-word>
+                                <span
+                                    key={index}
+                                    data-word
+                                    className="about-word"
+                                >
                                     {word}{' '}
                                 </span>
                             ))}

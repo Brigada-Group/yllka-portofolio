@@ -9,13 +9,6 @@
     --font-display: 'Instrument Serif', ui-serif, Georgia, serif;
     --font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', monospace;
 
-    /* Colour */
-    --color-background: #0e0e0f;
-    --color-foreground: #f2f0eb;
-    --color-muted: #8a8780;
-    /* Periwinkle from the orb (Harold breathing bloom). */
-    --color-accent: #7c7cf0;
-
     /* Fluid type scale */
     --text-label: clamp(0.6875rem, 0.65rem + 0.15vw, 0.8125rem);
     --text-label--line-height: 1.4;
@@ -45,9 +38,81 @@
     --text-hero--letter-spacing: -0.03em;
 }
 
+/*
+ * Colour. Every colour comes from these tokens, set per theme on <html
+ * data-theme> (an inline script in app.blade.php sets it before first paint;
+ * dark is the default). Each pair below meets WCAG AA on its background:
+ * text and labels 4.5:1, borders that identify a control and the focus
+ * ring 3:1.
+ */
+@theme inline {
+    --color-background: var(--theme-background);
+    --color-foreground: var(--theme-foreground);
+    /* Secondary text: labels, metadata. */
+    --color-muted: var(--theme-muted);
+    /* A step dimmer than muted (nav numbers, placeholders), still AA. */
+    --color-faint: var(--theme-faint);
+    /* The orb's periwinkle: links, status text, focus ring. */
+    --color-accent: var(--theme-accent);
+    /* Hairline borders around cards and images. */
+    --color-line: var(--theme-line);
+    /* Borders that mark a control (inputs, buttons). */
+    --color-field: var(--theme-field);
+    /* The scrolled nav bar, under a blur. */
+    --color-bar: var(--theme-bar);
+}
+
+:root,
+[data-theme='dark'] {
+    color-scheme: dark;
+    --theme-background: #0e0e0f; /* text on it: 16.9:1 */
+    --theme-foreground: #f2f0eb;
+    --theme-muted: #8a8780; /* 5.4:1 */
+    --theme-faint: #7e7b75; /* 4.6:1 */
+    --theme-accent: #7c7cf0; /* 5.5:1 */
+    --theme-line: rgb(255 255 255 / 0.08);
+    --theme-field: #696867; /* 3.5:1 */
+    --theme-bar: rgb(14 14 15 / 0.7);
+    /* Hero glow and the light it casts on the name (r g b). */
+    --theme-glow: 124 124 240;
+    --theme-glow-strength: 1;
+    --theme-glow-size: 1;
+    --theme-letter-light: 176 168 255;
+    --theme-grain-opacity: 0.06;
+    --theme-grain-invert: 0;
+}
+
+[data-theme='light'] {
+    color-scheme: light;
+    --theme-background: #f3f1ec; /* text on it: 16.6:1 */
+    --theme-foreground: #121212;
+    --theme-muted: #5f5c56; /* 5.9:1 */
+    --theme-faint: #6b6862; /* 4.9:1 */
+    --theme-accent: #5050c8; /* 5.6:1 */
+    --theme-line: rgb(18 18 18 / 0.1);
+    --theme-field: #85837e; /* 3.4:1 */
+    --theme-bar: rgb(243 241 236 / 0.72);
+    --theme-glow: 80 80 200;
+    --theme-glow-strength: 0.55;
+    --theme-glow-size: 0.75;
+    --theme-letter-light: 80 80 200;
+    --theme-grain-opacity: 0.035;
+    --theme-grain-invert: 1;
+}
+
 html {
     background: var(--color-background);
-    color-scheme: dark;
+}
+
+/*
+ * Theme switch (see resources/js/lib/theme.ts): the new theme is revealed as
+ * a circle growing from the toggle, animated from script. Turn off the
+ * default cross-fade so only the circle shows.
+ */
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
 }
 
 ::selection {
@@ -114,13 +179,41 @@ html {
     }
 }
 
+/*
+ * Project placeholder covers: a gradient mesh per project, with a dark and
+ * a light version (see resources/js/components/project-cover.tsx).
+ */
+.mesh {
+    background-image: var(--mesh-dark);
+}
+
+[data-theme='light'] .mesh {
+    background-image: var(--mesh-light);
+}
+
+/*
+ * About statement words light up as you scroll: --lit goes 0 → 1 (scrubbed
+ * by GSAP), from dim muted to full text colour. Unlit (no script, reduced
+ * motion) they show at full colour.
+ */
+.about-word {
+    color: color-mix(
+        in srgb,
+        var(--color-foreground) calc(var(--lit, 1) * 100%),
+        var(--color-muted)
+    );
+    opacity: calc(0.35 + 0.65 * var(--lit, 1));
+}
+
 /* Film grain over the whole page. Static, so it costs nothing per frame. */
 .grain {
     position: fixed;
     inset: 0;
     z-index: 50;
     pointer-events: none;
-    opacity: 0.06;
+    /* White noise; inverted to dark noise on the light theme. */
+    opacity: var(--theme-grain-opacity);
+    filter: invert(var(--theme-grain-invert));
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
@@ -130,13 +223,13 @@ html {
  * it (--glow-*, set on the name).
  */
 .hero-glow {
-    width: clamp(320px, 42vw, 620px);
+    width: calc(clamp(320px, 42vw, 620px) * var(--theme-glow-size));
     aspect-ratio: 1;
     border-radius: 9999px;
     background: radial-gradient(
         closest-side,
-        rgb(124 124 240 / 0.2),
-        rgb(124 124 240 / 0.07) 45%,
+        rgb(var(--theme-glow) / calc(0.2 * var(--theme-glow-strength))),
+        rgb(var(--theme-glow) / calc(0.07 * var(--theme-glow-strength))) 45%,
         transparent 100%
     );
 }
@@ -146,7 +239,7 @@ html {
     background-image:
         radial-gradient(
             circle 1.3em at var(--glow-x, -100vw) var(--glow-y, -100vh),
-            rgb(176 168 255 / var(--glow-o, 0)),
+            rgb(var(--theme-letter-light) / var(--glow-o, 0)),
             transparent
         ),
         linear-gradient(var(--color-foreground), var(--color-foreground));
@@ -191,11 +284,8 @@ html {
  */
 [data-orb-lane] {
     height: 4rem;
-    background: linear-gradient(
-            rgb(242 240 235 / 0.14),
-            rgb(242 240 235 / 0.14)
-        )
-        bottom / 100% 1px no-repeat;
+    background: linear-gradient(var(--color-line), var(--color-line)) bottom /
+        100% 1px no-repeat;
 }
 
 [data-orb-pinned] [data-orb-viewport] {

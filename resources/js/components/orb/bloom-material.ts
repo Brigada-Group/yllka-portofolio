@@ -87,6 +87,7 @@ const fragmentShader = /* glsl */ `
     uniform float uBloomOpacity;
     uniform float uCoreRadius;
     uniform float uGlow;
+    uniform float uLight;
 
     varying vec3 vObject;
     varying vec3 vView;
@@ -130,6 +131,12 @@ const fragmentShader = /* glsl */ `
         vec3 overlay = mix(2.0 * color * g, 1.0 - 2.0 * (1.0 - color) * (1.0 - g), step(0.5, color));
         color = mix(color, overlay, 0.5);
 
+        // Light theme: deeper, more saturated colour and a soft darker rim,
+        // so the orb holds its own against a pale page.
+        float rim = smoothstep(0.55, 1.0, 1.0 - vView.z);
+        color = mix(color, pow(color, vec3(1.45)), uLight * 0.75);
+        color = mix(color, color * 0.72, rim * uLight * 0.6);
+
         gl_FragColor = vec4(color, 1.0);
     }
 `;
@@ -148,6 +155,7 @@ export function createBloomMaterial(): ShaderMaterial {
             uBloomOpacity: { value: 0.6 },
             uCoreRadius: { value: 0.08 },
             uGlow: { value: 0 },
+            uLight: { value: 0 },
         },
     });
 }
@@ -171,5 +179,13 @@ export function setBreath(
     material.uniforms.uGlow.value = glow * 0.16;
 }
 
-/** The halo's colour, from the same palette. */
-export const HALO_COLOR = PALETTE.lavender;
+/** The material for a theme: tuned to stay visible on the light page. */
+export function setBloomTheme(material: ShaderMaterial, light: boolean) {
+    material.uniforms.uLight.value = light ? 1 : 0;
+}
+
+/** The halo per theme: a lavender glow on dark, a softer indigo one on light. */
+export const HALO = {
+    dark: { color: PALETTE.lavender, opacity: 0.45 },
+    light: { color: PALETTE.indigo, opacity: 0.2 },
+};

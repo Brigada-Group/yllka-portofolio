@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { useIsMobile, usePrefersReducedMotion } from '@/hooks/use-media-query';
+import { useTheme } from '@/lib/theme';
 import { shouldPlayIntro } from './intro';
 import { createOrbMotion } from './motion';
 import OrbErrorBoundary from './orb-error-boundary';
@@ -74,6 +75,7 @@ export default function OrbStage() {
     // The hero text is hidden while the intro is pending, so load straight away.
     const idle = useIdle(introEnabled);
     const mobile = useIsMobile();
+    const theme = useTheme();
     // `?orbDebug=1` (or `?orb-debug`): route trace, stop rings and timing markers.
     const [debug] = useState(() => {
         if (typeof window === 'undefined') {
@@ -125,6 +127,7 @@ export default function OrbStage() {
                         mobile={mobile}
                         reducedMotion={reducedMotion}
                         debug={debug}
+                        theme={theme}
                     />
                 </Suspense>
             </OrbErrorBoundary>

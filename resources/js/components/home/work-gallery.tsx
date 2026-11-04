@@ -61,7 +61,7 @@ export default function WorkGallery({ items }: { items: ProjectSummary[] }) {
                                     className="group block w-[75vw] md:w-[32vw]"
                                 >
                                     <div
-                                        className={`overflow-hidden rounded-[7px] border border-white/[0.08] md:max-h-[48svh] ${FRAMES[index % FRAMES.length]}`}
+                                        className={`overflow-hidden rounded-[7px] border border-line md:max-h-[48svh] ${FRAMES[index % FRAMES.length]}`}
                                     >
                                         <ProjectCover
                                             slug={project.slug}

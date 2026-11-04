@@ -7,6 +7,6 @@ void createInertiaApp({
     layout: () => PublicLayout,
     strictMode: true,
     progress: {
-        color: '#4B5563',
+        color: 'var(--color-accent)',
     },
 });

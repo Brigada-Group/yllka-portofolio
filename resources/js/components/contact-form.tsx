@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { store } from '@/routes/contact';
 
 const inputClass =
-    'w-full border-b border-foreground/20 bg-transparent py-3 text-body text-foreground outline-none transition-colors placeholder:text-muted/60 focus:border-accent';
+    'w-full border-b border-field bg-transparent py-3 text-body text-foreground outline-none transition-colors placeholder:text-faint focus:border-accent';
 
 function Field({
     label,
@@ -86,7 +86,7 @@ export default function ContactForm({
                         <button
                             type="submit"
                             disabled={processing}
-                            className="group inline-flex items-center gap-3 rounded-full border border-foreground/30 px-6 py-3 font-mono text-label uppercase transition-colors hover:border-foreground hover:bg-foreground hover:text-background disabled:opacity-50"
+                            className="group inline-flex items-center gap-3 rounded-full border border-field px-6 py-3 font-mono text-label uppercase transition-colors hover:border-foreground hover:bg-foreground hover:text-background disabled:opacity-50"
                         >
                             {processing ? 'Sending…' : 'Send message'}
                             <span className="transition-transform group-hover:translate-x-1">

@@ -2,7 +2,13 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import { MathUtils, Quaternion, Vector3 } from 'three';
 import type { Group, Mesh, MeshBasicMaterial } from 'three';
-import { createBloomMaterial, HALO_COLOR, setBreath } from './bloom-material';
+import type { Theme } from '@/lib/theme';
+import {
+    createBloomMaterial,
+    HALO,
+    setBloomTheme,
+    setBreath,
+} from './bloom-material';
 import { docToWorld, pxToWorld } from './coordinates';
 import { orbHero } from './hero-play';
 import { VIEWPORT_MARGIN } from './route';
@@ -18,6 +24,7 @@ type OrbProps = {
     quality: 'high' | 'low';
     /** Hover, breathing and swirl. Off for reduced motion. */
     interactive: boolean;
+    theme: Theme;
 };
 
 /** Hover reaction: how much bigger the orb gets, how far it leans and tilts towards the pointer. */
@@ -27,7 +34,8 @@ const HOVER_TILT = 0.35;
 /** The pointer counts as hovering within this many radii of the centre. */
 const HOVER_REACH = 1.4;
 
-const SHADOW_OPACITY = 0.18;
+/** The contact shadow, a little stronger on the light theme so the orb sits on the page. */
+const SHADOW_OPACITY = { dark: 0.18, light: 0.32 };
 
 /** Longest time step a frame may take, in seconds: the first frame, or a return to a background tab, otherwise jumps. */
 const MAX_STEP = 0.1;
@@ -54,8 +62,7 @@ const BREATH_SCALE = 0.02;
 const BUSY_SPEED = 800;
 /** The busy glow pulses every 1.6s. */
 const GLOW_PERIOD = 1.6;
-/** Halo: lavender, at 45% opacity, slightly larger than the orb and a little low. */
-const HALO_OPACITY = 0.45;
+/** Halo: slightly larger than the orb and a little low (colour and opacity per theme). */
 const HALO_SIZE = 1.3;
 const HALO_DROP = 0.08;
 
@@ -77,7 +84,13 @@ const angleBetween = (a: number, b: number) =>
  * top. Built from unit-sized meshes scaled to the measured radius, so
  * resizing never rebuilds geometry.
  */
-export default function Orb({ path, motion, quality, interactive }: OrbProps) {
+export default function Orb({
+    path,
+    motion,
+    quality,
+    interactive,
+    theme,
+}: OrbProps) {
     const body = useRef<Group>(null);
     const stretch = useRef<Group>(null);
     const unstretch = useRef<Group>(null);
@@ -91,6 +104,17 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
         [],
     );
     const bloom = useMemo(createBloomMaterial, []);
+    const halo = useRef<MeshBasicMaterial>(null);
+
+    // Follow the theme live, without rebuilding the scene.
+    useEffect(() => {
+        setBloomTheme(bloom, theme === 'light');
+
+        if (halo.current) {
+            halo.current.color.set(HALO[theme].color);
+            halo.current.opacity = HALO[theme].opacity;
+        }
+    }, [bloom, theme]);
 
     useEffect(
         () => () => {
@@ -490,7 +514,7 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
         );
         // No contact shadow while the hero holds the orb: it is off its ledge.
         (floor.material as MeshBasicMaterial).opacity =
-            SHADOW_OPACITY * grounded * (1 - (play?.blend ?? 0));
+            SHADOW_OPACITY[theme] * grounded * (1 - (play?.blend ?? 0));
     });
 
     return (
@@ -522,10 +546,11 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
                 >
                     <planeGeometry />
                     <meshBasicMaterial
+                        ref={halo}
                         map={textures.halo}
-                        color={HALO_COLOR}
+                        color={HALO[theme].color}
                         transparent
-                        opacity={HALO_OPACITY}
+                        opacity={HALO[theme].opacity}
                         depthWrite={false}
                         toneMapped={false}
                     />

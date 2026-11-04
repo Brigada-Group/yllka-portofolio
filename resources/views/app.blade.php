@@ -1,8 +1,19 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-theme="dark">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#0e0e0f">
+
+        {{-- Theme before first paint: dark unless the visitor chose light (see resources/js/lib/theme.ts). --}}
+        <script>
+            (function () {
+                var theme = 'dark';
+                try { if (localStorage.getItem('theme') === 'light') theme = 'light'; } catch (e) {}
+                document.documentElement.dataset.theme = theme;
+                if (theme === 'light') document.querySelector('meta[name="theme-color"]').setAttribute('content', '#f3f1ec');
+            })();
+        </script>
 
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

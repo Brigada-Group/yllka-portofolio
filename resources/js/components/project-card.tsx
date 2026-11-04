@@ -11,7 +11,7 @@ export default function ProjectCard({ project }: { project: ProjectSummary }) {
                 href={projects.show(project.slug)}
                 className="block space-y-3"
             >
-                <div className="aspect-video overflow-hidden rounded-[7px] border border-white/[0.08]">
+                <div className="aspect-video overflow-hidden rounded-[7px] border border-line">
                     <ProjectCover
                         slug={project.slug}
                         title={project.title}

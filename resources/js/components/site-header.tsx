@@ -11,6 +11,7 @@ import {
 } from '@/components/site-nav';
 import { useIsMobile } from '@/hooks/use-media-query';
 import { useLenis } from '@/lib/smooth-scroll';
+import { setTheme, useTheme } from '@/lib/theme';
 import { home } from '@/routes';
 
 /** Scrolled further than this (px), the bar gets its background. */
@@ -33,6 +34,50 @@ function Roll({ children }: { children: ReactNode }) {
             <span>{children}</span>
             <span aria-hidden="true">{children}</span>
         </span>
+    );
+}
+
+/**
+ * Switches between the dark (default) and light theme, revealing the new one
+ * as a circle growing from the button. Labelled with the theme it switches to.
+ */
+function ThemeToggle({ className = '' }: { className?: string }) {
+    const theme = useTheme();
+    const next = theme === 'dark' ? 'light' : 'dark';
+
+    return (
+        <button
+            type="button"
+            aria-label={`Switch to ${next} mode`}
+            aria-pressed={theme === 'light'}
+            onClick={(event) => {
+                const box = event.currentTarget.getBoundingClientRect();
+                setTheme(next, {
+                    x: box.left + box.width / 2,
+                    y: box.top + box.height / 2,
+                });
+            }}
+            className={`nav-link inline-flex items-center gap-2 font-mono text-[12px] tracking-[0.06em] text-muted uppercase transition-colors duration-300 hover:text-foreground ${className}`}
+        >
+            {/* A circle, half filled. */}
+            <svg
+                aria-hidden="true"
+                width="10"
+                height="10"
+                viewBox="0 0 10 10"
+                className="shrink-0"
+            >
+                <circle
+                    cx="5"
+                    cy="5"
+                    r="4.5"
+                    fill="none"
+                    stroke="currentColor"
+                />
+                <path d="M5 0.5a4.5 4.5 0 0 1 0 9z" fill="currentColor" />
+            </svg>
+            <Roll>{next === 'light' ? 'Light' : 'Dark'}</Roll>
+        </button>
     );
 }
 
@@ -157,7 +202,7 @@ function MobileMenu({ onClose, name }: { onClose: () => void; name: string }) {
                             >
                                 <span
                                     aria-hidden="true"
-                                    className="font-mono text-[12px] tracking-[0.06em] opacity-60"
+                                    className="font-mono text-[12px] tracking-[0.06em] text-faint"
                                 >
                                     {navNumber(index)}
                                 </span>
@@ -167,6 +212,10 @@ function MobileMenu({ onClose, name }: { onClose: () => void; name: string }) {
                     ))}
                 </ul>
             </nav>
+
+            <div className="px-4 pb-10">
+                <ThemeToggle />
+            </div>
         </div>,
         document.body,
     );
@@ -202,7 +251,7 @@ export default function SiteHeader() {
         <header
             className={`fixed inset-x-0 top-0 z-30 border-b transition-[background-color,border-color,backdrop-filter] duration-300 ${
                 scrolled
-                    ? 'border-white/[0.06] bg-[rgba(14,14,15,0.7)] backdrop-blur-[12px]'
+                    ? 'border-line bg-bar backdrop-blur-[12px]'
                     : 'border-transparent bg-transparent'
             }`}
         >
@@ -214,44 +263,47 @@ export default function SiteHeader() {
                     {site.name}
                 </Link>
 
-                <nav aria-label="Main" className="hidden md:block">
-                    <ul className="flex gap-8">
-                        {NAV_ITEMS.map((item, index) => {
-                            const current = active === item.section;
+                <div className="hidden items-center gap-8 md:flex">
+                    <nav aria-label="Main">
+                        <ul className="flex gap-8">
+                            {NAV_ITEMS.map((item, index) => {
+                                const current = active === item.section;
 
-                            return (
-                                <li key={item.section}>
-                                    <a
-                                        href={navHref(item.section)}
-                                        aria-current={
-                                            current ? 'page' : undefined
-                                        }
-                                        onClick={(event) =>
-                                            jump(event, item.section)
-                                        }
-                                        className="nav-link relative block font-mono text-[12px] tracking-[0.06em] text-muted uppercase transition-colors duration-300 hover:text-foreground aria-[current=page]:text-foreground"
-                                    >
-                                        {current && (
-                                            <span
-                                                aria-hidden="true"
-                                                className="absolute top-1/2 -left-3 size-[5px] -translate-y-1/2 rounded-full bg-accent"
-                                            />
-                                        )}
-                                        <Roll>
-                                            <span
-                                                aria-hidden="true"
-                                                className="opacity-60"
-                                            >
-                                                {navNumber(index)}
-                                            </span>{' '}
-                                            {item.label}
-                                        </Roll>
-                                    </a>
-                                </li>
-                            );
-                        })}
-                    </ul>
-                </nav>
+                                return (
+                                    <li key={item.section}>
+                                        <a
+                                            href={navHref(item.section)}
+                                            aria-current={
+                                                current ? 'page' : undefined
+                                            }
+                                            onClick={(event) =>
+                                                jump(event, item.section)
+                                            }
+                                            className="nav-link relative block font-mono text-[12px] tracking-[0.06em] text-muted uppercase transition-colors duration-300 hover:text-foreground aria-[current=page]:text-foreground"
+                                        >
+                                            {current && (
+                                                <span
+                                                    aria-hidden="true"
+                                                    className="absolute top-1/2 -left-3 size-[5px] -translate-y-1/2 rounded-full bg-accent"
+                                                />
+                                            )}
+                                            <Roll>
+                                                <span
+                                                    aria-hidden="true"
+                                                    className="text-faint"
+                                                >
+                                                    {navNumber(index)}
+                                                </span>{' '}
+                                                {item.label}
+                                            </Roll>
+                                        </a>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    </nav>
+                    <ThemeToggle />
+                </div>
 
                 <button
                     ref={menuButton}

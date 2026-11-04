@@ -2,6 +2,7 @@ import { advance, Canvas, useFrame } from '@react-three/fiber';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { gsap } from '@/lib/gsap';
+import type { Theme } from '@/lib/theme';
 import type { OrbMotion } from './motion';
 import Orb from './orb';
 import OrbDebug from './orb-debug';
@@ -15,6 +16,7 @@ type OrbCanvasProps = {
     mobile: boolean;
     reducedMotion: boolean;
     debug: boolean;
+    theme: Theme;
 };
 
 /** Frames to render before the scene counts as ready. */
@@ -71,6 +73,7 @@ export default function OrbCanvas({
     mobile,
     reducedMotion,
     debug,
+    theme,
 }: OrbCanvasProps) {
     const visible = usePageVisible();
 
@@ -113,6 +116,7 @@ export default function OrbCanvas({
                 motion={motion}
                 quality={mobile ? 'low' : 'high'}
                 interactive={!reducedMotion}
+                theme={theme}
             />
             {debug && <OrbDebug path={path} />}
             <WarmUp onReady={onReady} />
