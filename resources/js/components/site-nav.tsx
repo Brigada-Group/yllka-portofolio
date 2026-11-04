@@ -12,43 +12,33 @@ const ITEMS: { label: string; section: string | null }[] = [
     { label: 'Contact', section: 'contact' },
 ];
 
-/** Smooth, with an ease that starts and ends gently. */
-const SCROLL_DURATION = 1.6;
-const easeInOutCubic = (t: number) =>
-    t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
-
 /**
- * The site nav. On the home page, links scroll smoothly to their section
- * (with Lenis, so the orb travels along); elsewhere, they go to the home
- * page first and then scroll there. Links keep real addresses (/#about), so
+ * The site nav. On the home page, links jump straight to their section;
+ * elsewhere, they go to the home page first and then jump there. Links keep real addresses (/#about), so
  * opening them in a new tab works.
  */
 export default function SiteNav() {
     const { component } = usePage();
     const lenis = useLenis();
 
-    const scrollTo = (section: string | null) => {
+    const jumpTo = (section: string | null) => {
         const target = section ? document.getElementById(section) : null;
 
         if (section && !target) {
             return;
         }
 
+        const top = target
+            ? target.getBoundingClientRect().top + window.scrollY
+            : 0;
+
         if (lenis) {
             // Lenis re-measures the page only after a debounce, so after a visit
             // its scroll limit can still be the previous page's. Measure now.
             lenis.resize();
-            lenis.scrollTo(target ?? 0, {
-                duration: SCROLL_DURATION,
-                easing: easeInOutCubic,
-            });
+            lenis.scrollTo(top, { immediate: true, force: true });
         } else {
-            // No smooth scrolling (reduced motion): go straight there.
-            window.scrollTo({
-                top: target
-                    ? target.getBoundingClientRect().top + window.scrollY
-                    : 0,
-            });
+            window.scrollTo({ top });
         }
 
         window.history.replaceState(
@@ -73,14 +63,14 @@ export default function SiteNav() {
         event.preventDefault();
 
         if (component === 'home') {
-            scrollTo(section);
+            jumpTo(section);
 
             return;
         }
 
-        // From another page: go home, then scroll once the page has laid out.
+        // From another page: go home, then jump once the page has laid out.
         // Wait for the visit's `navigate` event (the smooth-scroll provider
-        // re-syncs Lenis there, which would cancel an earlier scroll), then for
+        // re-syncs Lenis there, which would undo an earlier jump), then for
         // ScrollTrigger's refresh that lays out the pinned sections, or a short
         // wait if that has already happened.
         if (section) {
@@ -91,7 +81,7 @@ export default function SiteNav() {
                     if (!done) {
                         done = true;
                         ScrollTrigger.removeEventListener('refresh', go);
-                        requestAnimationFrame(() => scrollTo(section));
+                        requestAnimationFrame(() => jumpTo(section));
                     }
                 };
 
@@ -109,8 +99,8 @@ export default function SiteNav() {
                 {ITEMS.map((item) => (
                     <li key={item.label}>
                         {/*
-                          A plain link, not Inertia's <Link>: that would start its own
-                          visit and jump to the anchor alongside this smooth scroll.
+                          A plain link, not Inertia's <Link>: that would start its own visit
+                          and jump to the anchor before the pinned sections are laid out.
                         */}
                         <a
                             href={
