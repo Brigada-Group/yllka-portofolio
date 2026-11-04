@@ -43,9 +43,10 @@ export default function Accessibility() {
                             comes first.
                         </li>
                         <li>
-                            VoiceOver on macOS: headings, landmarks, links and
-                            the contact form read clearly, and page changes are
-                            announced.
+                            Screen reader semantics: headings, landmarks, link
+                            and button names, form labels and errors, and page
+                            change announcements, checked in the accessibility
+                            tree.
                         </li>
                         <li>
                             Small screens down to 320px wide and 200% zoom, with
