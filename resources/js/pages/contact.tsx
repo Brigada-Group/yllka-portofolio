@@ -18,7 +18,19 @@ export default function Contact() {
                     <h1>Contact</h1>
                     <p>
                         Send me a message, or email me directly at{' '}
-                        <a href={`mailto:${site.email}`}>{site.email}</a>.
+                        <a href={`mailto:${site.email}`}>{site.email}</a>
+                        {site.phone && (
+                            <>
+                                {' '}
+                                or call{' '}
+                                <a
+                                    href={`tel:${site.phone.replace(/\s+/g, '')}`}
+                                >
+                                    {site.phone}
+                                </a>
+                            </>
+                        )}
+                        .
                     </p>
                 </header>
 

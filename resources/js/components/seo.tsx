@@ -1,14 +1,20 @@
 import { Head, usePage } from '@inertiajs/react';
 
 type SeoProps = {
-    /** Page title. The site name is appended automatically. Omit on the home page. */
+    /**
+     * Page title, followed by the site name ("Projects — Yllka Selimi").
+     * Omit on the home page, which is titled with the name and title
+     * ("Yllka Selimi — Frontend Developer · UI/UX").
+     */
     title?: string;
     description: string;
 };
 
 export default function Seo({ title, description }: SeoProps) {
     const { site } = usePage().props;
-    const fullTitle = title ? `${title} | ${site.name}` : site.name;
+    const fullTitle = title
+        ? `${title} — ${site.name}`
+        : [site.name, site.title].filter(Boolean).join(' — ');
 
     return (
         <Head title={fullTitle}>

@@ -9,6 +9,9 @@ class SiteSettings extends Settings
 {
     public string $name;
 
+    /** Professional title, e.g. "Frontend Developer · UI/UX". Used in page titles. */
+    public string $title;
+
     public string $headline;
 
     /** Short role, shown in a corner of the hero, e.g. "Full-stack @ Brigada". */
@@ -24,6 +27,16 @@ class SiteSettings extends Settings
     public ?string $resume;
 
     public string $email;
+
+    public ?string $phone;
+
+    /**
+     * Languages and levels, e.g. [['language' => 'English', 'level' => 'Fluent']].
+     * Typed with @phpstan-var: spatie/laravel-settings would try to cast a generic @var.
+     *
+     * @phpstan-var list<array{language: string, level: string}>
+     */
+    public array $languages;
 
     public ?string $location;
 
@@ -52,6 +65,7 @@ class SiteSettings extends Settings
     {
         return [
             'name' => $this->name,
+            'title' => $this->title,
             'headline' => $this->headline,
             'role' => $this->role,
             'education' => $this->education,
@@ -59,6 +73,8 @@ class SiteSettings extends Settings
             'avatar_url' => $this->avatar ? Storage::disk('public')->url($this->avatar) : null,
             'resume_url' => $this->resume ? Storage::disk('public')->url($this->resume) : null,
             'email' => $this->email,
+            'phone' => $this->phone,
+            'languages' => $this->languages,
             'location' => $this->location,
             'timezone' => $this->timezone,
             'social' => [

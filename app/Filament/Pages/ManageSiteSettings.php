@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Settings\SiteSettings;
 use BackedEnum;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -38,6 +39,10 @@ class ManageSiteSettings extends SettingsPage
                         TextInput::make('name')
                             ->required()
                             ->maxLength(255),
+                        TextInput::make('title')
+                            ->required()
+                            ->maxLength(80)
+                            ->helperText('E.g. "Frontend Developer · UI/UX". Used in page titles.'),
                         TextInput::make('role')
                             ->required()
                             ->maxLength(60)
@@ -55,6 +60,16 @@ class ManageSiteSettings extends SettingsPage
                         TextInput::make('email')
                             ->email()
                             ->required(),
+                        TextInput::make('phone')
+                            ->tel(),
+                        Repeater::make('languages')
+                            ->schema([
+                                TextInput::make('language')->required(),
+                                TextInput::make('level')->required()->placeholder('Fluent'),
+                            ])
+                            ->columns(2)
+                            ->defaultItems(0)
+                            ->reorderable(),
                         TextInput::make('location'),
                         Select::make('timezone')
                             ->options(fn () => array_combine(timezone_identifiers_list(), timezone_identifiers_list()))

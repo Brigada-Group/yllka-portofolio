@@ -8,10 +8,12 @@ export type Project = {
     title: string;
     slug: string;
     short_description: string;
+    /** Who it was built with or for, when given. */
+    context: string | null;
     role: string;
     category: string | null;
     client: string | null;
-    year: number;
+    year: number | null;
     duration: string | null;
     tools: string[] | null;
     /** Rich text (HTML) written in Filament. */
@@ -57,10 +59,17 @@ export type Skill = {
     sort_order: number;
 };
 
+export type ExperienceType = 'work' | 'education' | 'course';
+
 export type Experience = {
     id: number;
+    type: ExperienceType;
     company: string;
     position: string;
+    location: string | null;
+    url: string | null;
+    /** Show months, not just years, in the dates. */
+    show_months: boolean;
     /** Y-m-d */
     start_date: string;
     /** Y-m-d, or null for the current role. */
@@ -92,6 +101,8 @@ export type ContactMessage = {
 /** Shared on every page by HandleInertiaRequests (SiteSettings::toPublicArray). */
 export type SiteSettings = {
     name: string;
+    /** Professional title, e.g. "Frontend Developer · UI/UX". */
+    title: string;
     /** Sentence under the name in the hero. Words in *asterisks* are set in italic serif. */
     headline: string;
     /** Short role, shown in a corner of the hero. */
@@ -101,6 +112,8 @@ export type SiteSettings = {
     avatar_url: string | null;
     resume_url: string | null;
     email: string;
+    phone: string | null;
+    languages: { language: string; level: string }[];
     location: string | null;
     /** IANA timezone for the hero's live local time. */
     timezone: string;

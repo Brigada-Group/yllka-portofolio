@@ -1,11 +1,5 @@
+import { experienceLines, experiencePeriod } from '@/lib/experience';
 import type { Experience } from '@/types';
-
-const formatDate = (date: string) =>
-    new Date(date).toLocaleDateString('en', {
-        month: 'short',
-        year: 'numeric',
-        timeZone: 'UTC',
-    });
 
 export default function ExperienceTimeline({
     experiences,
@@ -13,28 +7,43 @@ export default function ExperienceTimeline({
     experiences: Experience[];
 }) {
     return (
-        <ol className="space-y-6">
-            {experiences.map((experience) => (
-                <li key={experience.id}>
-                    <h3>
-                        {experience.position}, {experience.company}
-                    </h3>
-                    <p>
-                        <time dateTime={experience.start_date}>
-                            {formatDate(experience.start_date)}
-                        </time>
-                        {' – '}
-                        {experience.end_date ? (
-                            <time dateTime={experience.end_date}>
-                                {formatDate(experience.end_date)}
-                            </time>
+        <ol className="space-y-8">
+            {experiences.map((experience) => {
+                const lines = experienceLines(experience);
+
+                return (
+                    <li key={experience.id} className="space-y-1">
+                        <p className="font-mono text-label text-muted uppercase">
+                            {experience.type} · {experiencePeriod(experience)}
+                        </p>
+                        <h3>
+                            {experience.position},{' '}
+                            {experience.url ? (
+                                <a
+                                    href={experience.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="underline"
+                                >
+                                    {experience.company}
+                                </a>
+                            ) : (
+                                experience.company
+                            )}
+                            {experience.location && `, ${experience.location}`}
+                        </h3>
+                        {lines.length > 1 ? (
+                            <ul className="list-disc pl-5">
+                                {lines.map((line) => (
+                                    <li key={line}>{line}</li>
+                                ))}
+                            </ul>
                         ) : (
-                            'Present'
+                            lines[0] && <p>{lines[0]}</p>
                         )}
-                    </p>
-                    {experience.description && <p>{experience.description}</p>}
-                </li>
-            ))}
+                    </li>
+                );
+            })}
         </ol>
     );
 }

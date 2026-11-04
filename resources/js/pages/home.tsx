@@ -25,7 +25,9 @@ export default function Home({
 
     return (
         <>
-            <Seo description={plainText(site.headline)} />
+            <Seo
+                description={`${[site.name, site.title].filter(Boolean).join(' — ')}. ${plainText(site.headline)}`}
+            />
             <OrbStage />
 
             <Hero />

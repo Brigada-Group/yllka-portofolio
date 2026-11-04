@@ -1,5 +1,7 @@
 import { Link } from '@inertiajs/react';
 import Container from '@/components/container';
+import { plainText } from '@/components/emphasis';
+import ProjectCover from '@/components/project-cover';
 import RichText from '@/components/rich-text';
 import Seo from '@/components/seo';
 import projects from '@/routes/projects';
@@ -23,14 +25,17 @@ export default function ProjectShow({ project }: { project: Project }) {
         <Container className="py-8">
             <article className="space-y-10">
                 <Seo
-                    title={project.title}
+                    title={plainText(project.title)}
                     description={project.short_description}
                 />
 
                 <header className="space-y-4">
                     <Link href={projects.index()}>← All projects</Link>
-                    <h1>{project.title}</h1>
+                    <h1>{plainText(project.title)}</h1>
                     <p>{project.short_description}</p>
+                    {project.context && (
+                        <p className="text-muted">{project.context}</p>
+                    )}
 
                     <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                         <div>
@@ -43,10 +48,18 @@ export default function ProjectShow({ project }: { project: Project }) {
                                 <dd>{project.client}</dd>
                             </div>
                         )}
-                        <div>
-                            <dt>Year</dt>
-                            <dd>{project.year}</dd>
-                        </div>
+                        {project.category && (
+                            <div>
+                                <dt>Category</dt>
+                                <dd>{project.category}</dd>
+                            </div>
+                        )}
+                        {project.year && (
+                            <div>
+                                <dt>Year</dt>
+                                <dd>{project.year}</dd>
+                            </div>
+                        )}
                         {project.duration && (
                             <div>
                                 <dt>Duration</dt>
@@ -80,13 +93,13 @@ export default function ProjectShow({ project }: { project: Project }) {
                     )}
                 </header>
 
-                {project.cover_image_url && (
-                    <img
+                <div className="aspect-[16/9] overflow-hidden rounded-[7px] border border-white/[0.08]">
+                    <ProjectCover
+                        slug={project.slug}
+                        title={project.title}
                         src={project.cover_image_url}
-                        alt=""
-                        className="w-full"
                     />
-                )}
+                </div>
 
                 {sections.map(
                     (section) =>

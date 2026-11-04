@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import { useRef } from 'react';
 import Emphasis from '@/components/emphasis';
+import Languages from '@/components/languages';
 import RevealText from '@/components/reveal-text';
 import SectionLabel from '@/components/section-label';
 import { usePrefersReducedMotion } from '@/hooks/use-media-query';
@@ -99,6 +100,8 @@ export default function AboutStatement() {
                                 </a>
                             )}
                         </div>
+
+                        <Languages className="mt-12" />
                     </div>
                 </div>
             </div>

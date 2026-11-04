@@ -45,6 +45,10 @@ class ProjectForm
                             ->required()
                             ->rows(3)
                             ->columnSpanFull(),
+                        Textarea::make('context')
+                            ->rows(2)
+                            ->helperText('Optional: who it was built with or for. Shown on the case study.')
+                            ->columnSpanFull(),
                         TextInput::make('role')
                             ->required()
                             ->placeholder('UI/UX Designer & Developer'),
@@ -52,11 +56,10 @@ class ProjectForm
                             ->placeholder('Product design'),
                         TextInput::make('client'),
                         TextInput::make('year')
-                            ->required()
                             ->numeric()
                             ->minValue(1990)
                             ->maxValue(2100)
-                            ->default(now()->year),
+                            ->helperText('Leave empty if unknown; it is hidden on the site.'),
                         TextInput::make('duration')
                             ->placeholder('3 months'),
                         TagsInput::make('tools')

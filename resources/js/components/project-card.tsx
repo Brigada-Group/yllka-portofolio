@@ -1,4 +1,6 @@
 import { Link } from '@inertiajs/react';
+import Emphasis, { emphasizeTitle, plainText } from '@/components/emphasis';
+import ProjectCover from '@/components/project-cover';
 import projects from '@/routes/projects';
 import type { ProjectSummary } from '@/types';
 
@@ -7,21 +9,28 @@ export default function ProjectCard({ project }: { project: ProjectSummary }) {
         <article>
             <Link
                 href={projects.show(project.slug)}
-                className="block space-y-2"
+                className="block space-y-3"
             >
-                {project.cover_image_url && (
-                    <img
+                <div className="aspect-video overflow-hidden rounded-[7px] border border-white/[0.08]">
+                    <ProjectCover
+                        slug={project.slug}
+                        title={project.title}
                         src={project.cover_image_url}
-                        alt=""
-                        className="aspect-video w-full object-cover"
-                        loading="lazy"
                     />
-                )}
-                <h3>{project.title}</h3>
-                <p>{project.short_description}</p>
-                <p>
-                    {project.role} · {project.year}
-                    {project.client && ` · ${project.client}`}
+                </div>
+                <h3 className="text-title">
+                    <span className="sr-only">{plainText(project.title)}</span>
+                    <span aria-hidden="true">
+                        <Emphasis text={emphasizeTitle(project.title)} />
+                    </span>
+                </h3>
+                <p className="text-foreground/80">
+                    {project.short_description}
+                </p>
+                <p className="font-mono text-label text-muted uppercase">
+                    {[project.year, project.role, project.category]
+                        .filter(Boolean)
+                        .join(' — ')}
                 </p>
             </Link>
         </article>

@@ -67,7 +67,10 @@ export default function Hero() {
                 </h1>
 
                 <p className="mt-12 font-mono text-label text-muted uppercase md:mt-16">
-                    {site.location && <span>{site.location} — </span>}
+                    {/* Just the city here ("Pristina, Kosovo" → "Pristina"). */}
+                    {site.location && (
+                        <span>{site.location.split(',')[0]} — </span>
+                    )}
                     <LiveTime timezone={site.timezone} />
                 </p>
             </div>

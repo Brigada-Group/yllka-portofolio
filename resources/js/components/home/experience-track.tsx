@@ -1,9 +1,8 @@
 import Emphasis from '@/components/emphasis';
 import RevealText from '@/components/reveal-text';
 import SectionLabel from '@/components/section-label';
+import { experienceLines, experiencePeriod } from '@/lib/experience';
 import type { Experience } from '@/types';
-
-const year = (date: string) => new Date(date).getUTCFullYear();
 
 /** (04) Experience: the orb lands as the full stop after the heading. */
 export default function ExperienceTrack({
@@ -46,10 +45,12 @@ export default function ExperienceTrack({
                                 className="grid gap-3 md:grid-cols-10 md:gap-6"
                             >
                                 <p className="font-mono text-label text-muted uppercase md:col-span-2 md:pt-2">
-                                    {year(experience.start_date)} —{' '}
-                                    {experience.end_date
-                                        ? year(experience.end_date)
-                                        : 'Now'}
+                                    <span className="block">
+                                        {experience.type}
+                                    </span>
+                                    <span className="block">
+                                        {experiencePeriod(experience)}
+                                    </span>
                                 </p>
                                 <div className="md:col-span-8">
                                     <h3 className="text-title">
@@ -57,12 +58,32 @@ export default function ExperienceTrack({
                                         <span className="font-display text-muted italic">
                                             at
                                         </span>{' '}
-                                        {experience.company}
+                                        {experience.url ? (
+                                            <a
+                                                href={experience.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="underline decoration-foreground/30 underline-offset-[0.15em] transition-colors hover:decoration-accent"
+                                            >
+                                                {experience.company}
+                                            </a>
+                                        ) : (
+                                            experience.company
+                                        )}
                                     </h3>
-                                    {experience.description && (
-                                        <p className="mt-4 max-w-[60ch] text-body text-foreground/70">
-                                            {experience.description}
+                                    {experience.location && (
+                                        <p className="mt-2 font-mono text-label text-muted uppercase">
+                                            {experience.location}
                                         </p>
+                                    )}
+                                    {experienceLines(experience).length > 0 && (
+                                        <ul className="mt-4 max-w-[60ch] space-y-1 text-body text-foreground/70">
+                                            {experienceLines(experience).map(
+                                                (line) => (
+                                                    <li key={line}>— {line}</li>
+                                                ),
+                                            )}
+                                        </ul>
                                     )}
                                 </div>
                             </li>

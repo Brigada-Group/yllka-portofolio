@@ -56,6 +56,19 @@ export default function ContactSection() {
                         >
                             {site.email}
                         </a>
+                        {site.phone && (
+                            <>
+                                <p className="mt-8 font-mono text-label text-muted uppercase">
+                                    Or call
+                                </p>
+                                <a
+                                    href={`tel:${site.phone.replace(/\s+/g, '')}`}
+                                    className="mt-3 inline-block text-[clamp(1.125rem,0.8rem+0.9vw,1.75rem)] underline decoration-foreground/30 underline-offset-[0.2em] transition-colors hover:decoration-accent"
+                                >
+                                    {site.phone}
+                                </a>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>

@@ -1,5 +1,6 @@
 import { usePage } from '@inertiajs/react';
 import Container from '@/components/container';
+import Languages from '@/components/languages';
 import ExperienceTimeline from '@/components/experience-timeline';
 import Seo from '@/components/seo';
 import SkillList from '@/components/skill-list';
@@ -42,6 +43,7 @@ export default function About({
                             Download resume (PDF)
                         </a>
                     )}
+                    <Languages />
                 </section>
 
                 {experiences.length > 0 && (

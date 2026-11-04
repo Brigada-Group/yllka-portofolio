@@ -83,5 +83,5 @@ test('site settings are shared with every page', function (string $url) {
     $this->get($url)
         ->assertInertia(fn (Assert $page) => $page
             ->has('site', fn (Assert $site) => $site
-                ->hasAll(['name', 'headline', 'role', 'education', 'bio', 'avatar_url', 'resume_url', 'email', 'location', 'timezone', 'social'])));
+                ->hasAll(['name', 'title', 'headline', 'role', 'education', 'bio', 'avatar_url', 'resume_url', 'email', 'phone', 'languages', 'location', 'timezone', 'social'])));
 })->with(['/', '/projects', '/about', '/contact']);

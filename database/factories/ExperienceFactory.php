@@ -20,6 +20,7 @@ class ExperienceFactory extends Factory
         $start = fake()->dateTimeBetween('-8 years', '-1 year');
 
         return [
+            'type' => 'work',
             'company' => fake()->company(),
             'position' => fake()->jobTitle(),
             'start_date' => $start,
