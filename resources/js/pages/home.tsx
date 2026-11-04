@@ -30,7 +30,7 @@ export default function Home({
             />
             <OrbStage />
 
-            <Hero />
+            <Hero latest={featuredProjects[0] ?? null} />
             <WorkGallery items={featuredProjects} />
             <AboutStatement />
             <SkillsMarquee skills={skills} />

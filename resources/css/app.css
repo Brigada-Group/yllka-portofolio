@@ -66,6 +66,63 @@ html {
 }
 
 /*
+ * Hero orb glow (see resources/js/components/hero-orb.tsx). A large, faint
+ * violet glow centred on the orb, which also lights the letters nearest to
+ * it (--glow-*, set on the name).
+ */
+.hero-glow {
+    width: clamp(320px, 42vw, 620px);
+    aspect-ratio: 1;
+    border-radius: 9999px;
+    background: radial-gradient(
+        closest-side,
+        rgb(124 124 240 / 0.2),
+        rgb(124 124 240 / 0.07) 45%,
+        transparent 100%
+    );
+}
+
+.hero-name {
+    color: transparent;
+    background-image:
+        radial-gradient(
+            circle 1.3em at var(--glow-x, -100vw) var(--glow-y, -100vh),
+            rgb(176 168 255 / var(--glow-o, 0)),
+            transparent
+        ),
+        linear-gradient(var(--color-foreground), var(--color-foreground));
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+/* Scroll cue: a short light running down a hairline, on a loop. */
+.scroll-cue::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 40%;
+    background: var(--color-foreground);
+    animation: scroll-cue 2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@keyframes scroll-cue {
+    from {
+        transform: translateY(-100%);
+    }
+
+    to {
+        transform: translateY(250%);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .scroll-cue::after {
+        animation: none;
+    }
+}
+
+/*
  * Horizontal sections (see resources/js/components/orb/orb-path.ts). On
  * desktop the section pins and the row slides; on small screens and with
  * reduced motion the row scrolls natively.

@@ -4,6 +4,7 @@ import { MathUtils, Quaternion, Vector3 } from 'three';
 import type { Group, Mesh, MeshBasicMaterial } from 'three';
 import { createBloomMaterial, HALO_COLOR, setBreath } from './bloom-material';
 import { docToWorld, pxToWorld } from './coordinates';
+import { orbHero } from './hero-play';
 import { VIEWPORT_MARGIN } from './route';
 import type { OrbMotion } from './motion';
 import { OrbOrientation } from './orientation';
@@ -137,6 +138,12 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
         // How firmly the orb is attached to a pinned track's real height, 0 to 1.
         attach: 0,
         laneAxis: new Vector3(0, 1, 0),
+        // Rolling while the hero holds the orb (dragged, thrown, returning).
+        playTurn: new Quaternion(),
+        playStep: new Quaternion(),
+        playAxis: new Vector3(),
+        identity: new Quaternion(),
+        playPrevious: null as { x: number; y: number } | null,
     });
 
     useFrame(({ size, viewport }, frameDelta) => {
@@ -204,9 +211,21 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
 
         point.y += state.attach * towardsTrack;
 
+        // In the hero, the orb can be dragged and thrown (see hero-play.ts).
+        const play = orbHero.play;
+        // On the ı: the route starts there, so it hasn't rolled from it (allowing
+        // for the last fraction of a pixel of the catch-up lag).
+        const resting = point.distance < 0.5 && motion.offsetY === 0;
+
+        if (play) {
+            point.x = MathUtils.lerp(point.x, play.x, play.blend);
+            point.y = MathUtils.lerp(point.y, play.y, play.blend) - play.lift;
+        }
+
         const visible = motion.visible && path.get().stops.length > 0;
         group.visible = visible;
         floor.visible = visible;
+        orbHero.drawn = visible;
 
         if (!visible || delta <= 0) {
             return;
@@ -275,9 +294,12 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
 
         const unitsPerPx = pxToWorld(1, size, viewport.width);
         const radius = point.r;
+        // The intro's drop and the hover hop lift the orb and squash it.
+        const offsetY = motion.offsetY + orbHero.hop.y;
+        const liftSquash = motion.squash * orbHero.hop.squash;
         // Squash from the intro drop and from landings, around the contact
         // point so the bottom stays on the ground.
-        const squash = motion.squash * point.squash;
+        const squash = liftSquash * point.squash;
         const groundOffset = radius * (1 - squash);
         // Always fully inside the viewport, with a margin.
         point.x = MathUtils.clamp(
@@ -286,8 +308,13 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
             size.width - VIEWPORT_MARGIN - radius,
         );
         const screenX = point.x - window.scrollX;
-        const screenY =
-            point.y + motion.offsetY + groundOffset - window.scrollY;
+        const screenY = point.y + offsetY + groundOffset - window.scrollY;
+
+        orbHero.x = point.x;
+        orbHero.y = point.y + offsetY + groundOffset;
+        orbHero.r = radius;
+        orbHero.resting = resting && !play;
+        orbHero.listeners.forEach((listener) => listener());
         const p = pointer.current;
 
         // Hover: ease towards 1 while the pointer is over (or near) the orb.
@@ -306,7 +333,7 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
 
         docToWorld(
             point.x + leanX,
-            point.y + motion.offsetY + groundOffset + leanY,
+            point.y + offsetY + groundOffset + leanY,
             window.scrollY,
             size,
             viewport.width,
@@ -321,8 +348,7 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
         const scale =
             radius * unitsPerPx * (1 + state.hover * HOVER_SCALE + swell);
         // Landing squash widens more than volume would (0.85 tall, 1.12 wide).
-        const sideways =
-            (scale / Math.sqrt(motion.squash)) * point.squash ** -0.7;
+        const sideways = (scale / Math.sqrt(liftSquash)) * point.squash ** -0.7;
         group.scale.set(sideways, scale * squash, sideways);
 
         // Stretch along the heading (leaning into turns), without turning the orb itself.
@@ -395,6 +421,28 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
             );
         }
 
+        // Held by the hero: roll with every move (distance / radius), and
+        // unwind smoothly once it is back on its route.
+        if (play && state.playPrevious) {
+            const mx = point.x - state.playPrevious.x;
+            const my = point.y - state.playPrevious.y;
+            const moved = Math.hypot(mx, my);
+
+            if (moved > 0 && moved < radius * 40) {
+                state.playTurn.premultiply(
+                    state.playStep.setFromAxisAngle(
+                        state.playAxis.set(my / moved, mx / moved, 0),
+                        moved / radius,
+                    ),
+                );
+            }
+        } else if (!play) {
+            state.playTurn.slerp(state.identity, 1 - Math.exp(-6 * delta));
+        }
+
+        state.playPrevious = play ? { x: point.x, y: point.y } : null;
+        state.target.premultiply(state.playTurn);
+
         // Then swirl about the view axis.
         state.target.premultiply(
             state.spin.setFromAxisAngle(state.view, state.swirl),
@@ -418,7 +466,7 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
         }
 
         // Contact shadow on the ground under the orb. Smaller and fainter while it's in the air.
-        const height = Math.max(0, -motion.offsetY);
+        const height = Math.max(0, -offsetY);
         const grounded = 1 / (1 + height / (radius * 3));
 
         docToWorld(
@@ -436,12 +484,13 @@ export default function Orb({ path, motion, quality, interactive }: OrbProps) {
                 2.3 *
                 (0.6 + 0.4 * grounded) *
                 state.stretch) /
-                Math.sqrt(motion.squash),
+                Math.sqrt(liftSquash),
             radius * unitsPerPx * 0.6 * (0.6 + 0.4 * grounded),
             1,
         );
+        // No contact shadow while the hero holds the orb: it is off its ledge.
         (floor.material as MeshBasicMaterial).opacity =
-            SHADOW_OPACITY * grounded;
+            SHADOW_OPACITY * grounded * (1 - (play?.blend ?? 0));
     });
 
     return (
